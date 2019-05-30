@@ -1,4 +1,4 @@
-# Token Request <img align="right" src="https://github.com/1Hive/website/blob/master/website/static/img/bee.png" height="80px" />
+# Deposits <img align="right" src="https://github.com/1Hive/website/blob/master/website/static/img/bee.png" height="80px" />
 
 1Hive's Deposits app allows an organization to require users to lock tokens by sending them to the deposits app for a configurable duration in order to forward an intent. For example the organization may require users to lock 100 organization tokens for 1 month before creating a new vote. The user would be able to come back in a month and claim their deposited tokens. 
 
