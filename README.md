@@ -4,7 +4,7 @@
 
 #### 🐲 Project stage: development
 
-The Redemptions app is still in development and hasn't been published to APM. If you are interested in contributing please see our open [issues](https://github.com/1hive/deposits-app/issues).
+The Deposits app is still in development and hasn't been published to APM. If you are interested in contributing please see our open [issues](https://github.com/1hive/deposits-app/issues).
 
 #### 🚨 Security review status: pre-audit
 
