@@ -18,18 +18,19 @@ We do not protect the deposit function with a role, so anyone is able to make de
 
 ### Initialization
 
-The deposits app is initialized with a `duration` parameter which determines how long deposits are locked. 
+The deposits app is initialized with a `duration`,  `token`, and `lock_amount` parameters which determines how long deposits are locked. The `token` parameter can be set at initialization and not changed, if a change is necessary the user can install a new instance and change permissions in the organization to reflect the change. 
 
 ### Roles
 The deposits app should implement the following roles:
 
 - **Change Duration**: This allows for changing the configured duration. This can impact current deposits (eg if the duration is increased, existing deposits are locked for a longer period, and if the duration is decreased, existing deposits can be re-claimed sooner).  
+- **Change Lock Amount**: This allows for changing the amount of tokens required to lock. This should not impact the claiming process for existing deposits. 
 
 ### Interface
 
 The deposits app provides an interface for a user to see any deposits they have made, and how much time until they can re-claim the deposit. 
 
-The deposits app does not provide an interface for changing the duration. This can be done via the CLI or directly interacting with the contract.
+The deposits app does not provide an interface for changing the duration or lock amount. This can be done via the CLI or directly interacting with the contract.
 
 ## How to run
 
