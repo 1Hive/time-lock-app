@@ -1,10 +1,10 @@
-# Deposits <img align="right" src="https://github.com/1Hive/website/blob/master/website/static/img/bee.png" height="80px" />
+# Lock <img align="right" src="https://github.com/1Hive/website/blob/master/website/static/img/bee.png" height="80px" />
 
-1Hive's Deposits app allows an organization to require users to lock tokens by sending them to the deposits app for a configurable duration in order to forward an intent. For example the organization may require users to lock 100 organization tokens for 1 month before creating a new vote. The user would be able to come back in a month and claim their deposited tokens. 
+1Hive's Lock app allows an Aragon organization to require users to lock tokens by sending them to the Lock app for a configurable period of time in order to forward an intent. For example the organization may require users to lock 100 tokens for 1 month before creating a new vote. The user would be able to come back in a month and claim their deposited tokens. 
 
 #### 🐲 Project stage: development
 
-The Deposits app is still in development and hasn't been published to APM. If you are interested in contributing please see our open [issues](https://github.com/1hive/deposits-app/issues).
+The Lock app is still in development and hasn't been published to APM. If you are interested in contributing please see our open [issues](https://github.com/1hive/lock-app/issues).
 
 #### 🚨 Security review status: pre-audit
 
@@ -12,18 +12,18 @@ The code in this repo has not been audited.
 
 ## How does it work
 
-The deposits app is a [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the deposits app a permission like `Create Votes` the user will be prompted and required to make a deposit before the users intent is forwarded. 
+The lock app is a [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the lock app a permission like `Create Votes` the user will be prompted and required to lock tokens before the user's intent can be forwarded. 
 
-We do not protect the deposit function with a role, so anyone is able to make deposits and forward actions. We keep track of when deposits are made and by whom so that users are only able to re-claim deposits that they have made after the duration has elapsed.
+We do not protect the lock function with a role, so anyone is able to make locks and forward actions. We keep track of when deposits are made and by whom so that users are only able to re-claim deposits that they have made after the duration has elapsed.
 
 ### Initialization
 
 The deposits app is initialized with a `duration`,  `token`, and `lock_amount` parameters which determines how long deposits are locked. The `token` parameter can be set at initialization and not changed, if a change is necessary the user can install a new instance and change permissions in the organization to reflect the change. 
 
 ### Roles
-The deposits app should implement the following roles:
+The lock app should implement the following roles:
 
-- **Change Duration**: This allows for changing the configured duration. This can impact current deposits (eg if the duration is increased, existing deposits are locked for a longer period, and if the duration is decreased, existing deposits can be re-claimed sooner).  
+- **Change Duration**: This allows for changing the configured duration. This can impact current lock (eg if the duration is increased, existing tokens are locked for a longer period, and if the duration is decreased, existing deposits can be re-claimed sooner).  
 - **Change Lock Amount**: This allows for changing the amount of tokens required to lock. This should not impact the claiming process for existing deposits. 
 
 ### Interface
