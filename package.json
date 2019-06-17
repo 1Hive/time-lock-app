@@ -1,0 +1,27 @@
+{
+  "name": "lock",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "@aragon/client": "^1.1.0",
+    "@aragon/os": "^4.0.1"
+  },
+  "devDependencies": {
+    "@aragon/cli": "^5.4.0",
+    "parcel-bundler": "^1.11.0"
+  },
+  "scripts": {
+    "start": "aragon run",
+    "test": "aragon contracts test",
+    "compile": "aragon contracts compile",
+    "deploy": "aragon deploy",
+    "build:app": "parcel build app/index.html -d dist/ --public-url \\\".\\\" --no-cache",
+    "build:script": "parcel build app/script.js -d dist/ --no-cache",
+    "build": "npm run build:app && npm run build:script",
+    "publish:patch": "aragon apm publish patch",
+    "publish:minor": "aragon apm publish minor",
+    "publish:major": "aragon apm publish major",
+    "versions": "aragon apm versions"
+  },
+  "keywords": []
+}
