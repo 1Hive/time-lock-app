@@ -7,6 +7,11 @@
     "@aragon/os": "^4.0.1"
   },
   "devDependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-stage-2": "^6.24.1",
+    "babel-preset-stage-3": "^6.17.0",
+    "babel-register": "^6.23.0",
     "@aragon/cli": "^5.4.0",
     "parcel-bundler": "^1.11.0"
   },

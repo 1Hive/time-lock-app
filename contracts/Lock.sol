@@ -66,7 +66,7 @@ contract Lock is AragonApp, IForwarder {
 
     // This requires approve be called before, not sure how to do this on the UI. Perhaps an approve pretransaction will work.
     function forward(bytes evmCallScript) public {
-        require(canForward(msg.sender, _evmScript), ERROR_CAN_NOT_FORWARD);
+        require(canForward(msg.sender, evmCallScript), ERROR_CAN_NOT_FORWARD);
 
         TokenLock storage tokenLock = lockedTokens[msg.sender];
         tokenLock.lockedUntil = now + lockDuration;
