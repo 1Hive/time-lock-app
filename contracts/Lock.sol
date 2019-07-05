@@ -11,8 +11,8 @@ contract Lock is AragonApp, IForwarder {
     using SafeMath for uint256;
     using WithdrawLockLib for WithdrawLockLib.WithdrawLock[];
 
-    bytes32 constant public CHANGE_DURATION_ROLE = keccak256("CHANGE_DURATION_ROLE");
-    bytes32 constant public CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
+    bytes32 public constant CHANGE_DURATION_ROLE = keccak256("CHANGE_DURATION_ROLE");
+    bytes32 public constant CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
 
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
     string private constant ERROR_CAN_NOT_FORWARD = "LOCK_CAN_NOT_FORWARD";
@@ -20,14 +20,14 @@ contract Lock is AragonApp, IForwarder {
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
 
-    ERC20 token;
-    uint256 lockDuration;
-    uint256 lockAmount;
+    ERC20 public token;
+    uint256 public lockDuration;
+    uint256 public lockAmount;
 
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
     // future we must use a mapping instead.
-    mapping(address => WithdrawLockLib.WithdrawLock[]) addressesWithdrawLocks;
+    mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks;
 
     /**
     * @notice Initialize the Lock app
@@ -70,7 +70,7 @@ contract Lock is AragonApp, IForwarder {
     }
 
     /**
-    * @notice Attempt to withdraw tokens from `numberWithdrawLocks` withdraw lock's
+    * @notice Withdraw all withdrawable tokens from the `_numberWithdrawLocks` oldest withdraw lock's
     * @param _numberWithdrawLocks The number of withdraw locks to attempt withdrawal from
     */
     function withdrawTokens(uint256 _numberWithdrawLocks) public {
