@@ -14,7 +14,7 @@ contract Lock is AragonApp, IForwarder {
     bytes32 constant public CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
 
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
-    string private constant ERROR_CAN_NOT_FORWARD = "VOTING_CAN_NOT_FORWARD";
+    string private constant ERROR_CAN_NOT_FORWARD = "LOCK_CAN_NOT_FORWARD";
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
@@ -55,11 +55,11 @@ contract Lock is AragonApp, IForwarder {
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[msg.sender];
         WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocksCopy = addressesWithdrawLocks[msg.sender];
 
-        require(numberWithdrawLocks < addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
+        require(numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
 
         uint256 amountOwed = 0;
 
-        for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocksCopy.length; withdrawLockIndex++) {
+        for (uint256 withdrawLockIndex = 0; withdrawLockIndex < numberWithdrawLocks; withdrawLockIndex++) {
 
             WithdrawLockLib.WithdrawLock memory withdrawLock = addressWithdrawLocksCopy[withdrawLockIndex];
 
