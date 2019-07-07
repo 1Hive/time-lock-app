@@ -29,5 +29,5 @@
       "network": "mainnet"
     }
   },
-  "path": "contracts/App.sol"
+  "path": "contracts/Lock.sol"
 }
