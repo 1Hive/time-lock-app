@@ -35,7 +35,7 @@ contract Lock is AragonApp, IForwarder {
     * @param _lockDuration The duration tokens will be locked before being able to be withdrawn
     * @param _lockAmount The amount of the token that is locked for each forwarded action
     */
-    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount) public onlyInit {
+    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount) external onlyInit {
         token = ERC20(_token);
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
@@ -47,7 +47,7 @@ contract Lock is AragonApp, IForwarder {
     * @notice Change lock duration to `_lockDuration`
     * @param _lockDuration The new lock duration
     */
-    function changeLockDuration(uint256 _lockDuration) public auth(CHANGE_DURATION_ROLE) {
+    function changeLockDuration(uint256 _lockDuration) external auth(CHANGE_DURATION_ROLE) {
         lockDuration = _lockDuration;
         emit ChangeLockDuration(lockDuration);
     }
@@ -56,7 +56,7 @@ contract Lock is AragonApp, IForwarder {
     * @notice Change lock amount to `_lockAmount`
     * @param _lockAmount The new lock amount
     */
-    function changeLockAmount(uint256 _lockAmount) public auth(CHANGE_AMOUNT_ROLE) {
+    function changeLockAmount(uint256 _lockAmount) external auth(CHANGE_AMOUNT_ROLE) {
         lockAmount = _lockAmount;
         emit ChangeLockAmount(lockAmount);
     }
@@ -64,7 +64,7 @@ contract Lock is AragonApp, IForwarder {
     /**
     * @notice Withdraw all withdrawable tokens
     */
-    function withdrawTokens() public {
+    function withdrawTokens() external {
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         withdrawTokens(addressWithdrawLocks.length);
     }
@@ -85,7 +85,7 @@ contract Lock is AragonApp, IForwarder {
 
             WithdrawLockLib.WithdrawLock memory withdrawLock = addressWithdrawLocksCopy[withdrawLockIndex];
 
-            if (now > withdrawLock.unlockTime) {
+            if (getTimestamp() > withdrawLock.unlockTime) {
                 amountOwed = amountOwed.add(withdrawLock.lockAmount);
                 addressWithdrawLocksStorage.deleteItem(withdrawLock);
             }
@@ -98,7 +98,7 @@ contract Lock is AragonApp, IForwarder {
         return true;
     }
 
-    function canForward(address _sender, bytes _evmCallScript) public view returns (bool) {
+    function canForward(address _sender, bytes) public view returns (bool) {
         bool allowanceAvailable = token.allowance(_sender, address(this)) >= lockAmount;
         return allowanceAvailable;
     }
@@ -112,7 +112,8 @@ contract Lock is AragonApp, IForwarder {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(now.add(lockDuration), lockAmount));
+        uint256 duration = getTimestamp().add(lockDuration);
+        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(duration, lockAmount));
 
         token.transferFrom(msg.sender, address(this), lockAmount);
 
