@@ -17,9 +17,6 @@ contract Lock is AragonApp, IForwarder {
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
     string private constant ERROR_CAN_NOT_FORWARD = "LOCK_CAN_NOT_FORWARD";
 
-    event ChangeLockDuration(uint256 newLockDuration);
-    event ChangeLockAmount(uint256 newLockAmount);
-
     ERC20 public token;
     uint256 public lockDuration;
     uint256 public lockAmount;
@@ -28,6 +25,10 @@ contract Lock is AragonApp, IForwarder {
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
     // future we must use a mapping instead.
     mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks;
+
+    event ChangeLockDuration(uint256 newLockDuration);
+    event ChangeLockAmount(uint256 newLockAmount);
+    event Withdrawl(address withdrawlAddress ,uint256 numberOfWithdrawls);
 
     /**
     * @notice Initialize the Lock app
@@ -66,32 +67,15 @@ contract Lock is AragonApp, IForwarder {
     */
     function withdrawTokens() external {
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-        withdrawTokens(addressWithdrawLocks.length);
+        _withdrawTokens(addressWithdrawLocks.length);
     }
 
     /**
     * @notice Withdraw all withdrawable tokens from the `_numberWithdrawLocks` oldest withdraw lock's
     * @param _numberWithdrawLocks The number of withdraw locks to attempt withdrawal from
     */
-    function withdrawTokens(uint256 _numberWithdrawLocks) public {
-        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[msg.sender];
-        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocksCopy = addressesWithdrawLocks[msg.sender];
-
-        require(_numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
-
-        uint256 amountOwed = 0;
-
-        for (uint256 withdrawLockIndex = 0; withdrawLockIndex < _numberWithdrawLocks; withdrawLockIndex++) {
-
-            WithdrawLockLib.WithdrawLock memory withdrawLock = addressWithdrawLocksCopy[withdrawLockIndex];
-
-            if (getTimestamp() > withdrawLock.unlockTime) {
-                amountOwed = amountOwed.add(withdrawLock.lockAmount);
-                addressWithdrawLocksStorage.deleteItem(withdrawLock);
-            }
-        }
-
-        token.transfer(msg.sender, amountOwed);
+    function withdrawTokens(uint256 _numberWithdrawLocks) external {
+       _withdrawTokens(_numberWithdrawLocks);
     }
 
     function isForwarder() external pure returns (bool) {
@@ -118,5 +102,33 @@ contract Lock is AragonApp, IForwarder {
         token.transferFrom(msg.sender, address(this), lockAmount);
 
         runScript(_evmCallScript, new bytes(0), new address[](0));
+    }
+
+    function getNumberOfLocks(address _lockAddress) public view returns (uint256) {
+        return addressesWithdrawLocks[_lockAddress].length;
+    }
+
+    function _withdrawTokens(uint256 _numberWithdrawLocks) internal {
+        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[msg.sender];
+        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocksCopy = addressesWithdrawLocks[msg.sender];
+
+        require(_numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
+
+        uint256 amountOwed = 0;
+        uint256 numberOfWithdrawls = 0;
+
+        for (uint256 withdrawLockIndex = 0; withdrawLockIndex < _numberWithdrawLocks; withdrawLockIndex++) {
+
+            WithdrawLockLib.WithdrawLock memory withdrawLock = addressWithdrawLocksCopy[withdrawLockIndex];
+
+            if (getTimestamp() > withdrawLock.unlockTime) {
+                amountOwed = amountOwed.add(withdrawLock.lockAmount);
+                numberOfWithdrawls += 1;
+                addressWithdrawLocksStorage.deleteItem(withdrawLock);
+            }
+        }
+        token.transfer(msg.sender, amountOwed);
+
+        emit Withdrawl(msg.sender, numberOfWithdrawls);
     }
 }
