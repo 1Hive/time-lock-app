@@ -92,6 +92,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         script = encodeCallScript([action])
       })
 
+      //should this test be done separately in say, 3 tests?
       it('forwards action successfully', async () => {
         await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT, { from: rootAccount })
         await lockForwarder.forward(script, { from: rootAccount })
@@ -142,10 +143,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       it("doesn't withdraw tokens (unlock time has not elapsed)", async () => {
         await lockForwarder.withdrawTokens(numberOfLocks, { from: rootAccount })
 
-        const expectedNumberOfLocks = numberOfLocks
-        const actualNumberOfLocks = await lockForwarder.getNumberOfLocks(rootAccount)
-
-        assert.equal(expectedNumberOfLocks, actualNumberOfLocks)
+        assert.equal(numberOfLocks, await lockForwarder.getNumberOfLocks(rootAccount))
       })
 
       it("can't withdraw more than locked", async () => {
