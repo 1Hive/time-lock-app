@@ -28,7 +28,7 @@ contract Lock is AragonApp, IForwarder {
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
-    event Withdrawl(address withdrawlAddress ,uint256 numberOfWithdrawls);
+    event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 
     /**
     * @notice Initialize the Lock app
@@ -104,7 +104,7 @@ contract Lock is AragonApp, IForwarder {
         runScript(_evmCallScript, new bytes(0), new address[](0));
     }
 
-    function getNumberOfLocks(address _lockAddress) public view returns (uint256) {
+    function getWithdrawLocksCount(address _lockAddress) public view returns (uint256) {
         return addressesWithdrawLocks[_lockAddress].length;
     }
 
@@ -115,7 +115,7 @@ contract Lock is AragonApp, IForwarder {
         require(_numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
 
         uint256 amountOwed = 0;
-        uint256 numberOfWithdrawls = 0;
+        uint256 withdrawLockCount = 0;
 
         for (uint256 withdrawLockIndex = 0; withdrawLockIndex < _numberWithdrawLocks; withdrawLockIndex++) {
 
@@ -123,12 +123,12 @@ contract Lock is AragonApp, IForwarder {
 
             if (getTimestamp() > withdrawLock.unlockTime) {
                 amountOwed = amountOwed.add(withdrawLock.lockAmount);
-                numberOfWithdrawls += 1;
+                withdrawLockCount += 1;
                 addressWithdrawLocksStorage.deleteItem(withdrawLock);
             }
         }
         token.transfer(msg.sender, amountOwed);
 
-        emit Withdrawl(msg.sender, numberOfWithdrawls);
+        emit Withdrawal(msg.sender, withdrawLockCount);
     }
 }
