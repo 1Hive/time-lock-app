@@ -54,7 +54,7 @@ module.exports = {
     rpc: {
       host: 'localhost',
       port: 8545,
-      network_id: '*',
+      network_id: '15',
     },
     mainnet: {
       network_id: 1,
