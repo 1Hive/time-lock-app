@@ -1,4 +1,4 @@
-const { assertRevert } = require('@aragon/test-helpers/assertThrow')
+const { assertRevert } = require('./helpers/helpers')
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
 
 const ExecutionTarget = artifacts.require('ExecutionTarget')
@@ -87,7 +87,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         executionTarget = await ExecutionTarget.new()
         const action = {
           to: executionTarget.address,
-          calldata: executionTarget.contract.execute.getData(),
+          calldata: executionTarget.contract.methods.execute().encodeABI(),
         }
         script = encodeCallScript([action])
       })
@@ -95,119 +95,136 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       //should this test be done separately in say, 3 tests?
       it('forwards action successfully', async () => {
         await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT, { from: rootAccount })
+
+        const expectedCounter = 1
+        const expectedLockerBalance = MOCK_TOKEN_BALANCE - INITIAL_LOCK_AMOUNT
+        const expectedLockAppBalance = INITIAL_LOCK_AMOUNT
+        const expectedNumberOfLocks = addressLocks + 1
+        const expectedLockAmount = INITIAL_LOCK_AMOUNT
+
         await lockForwarder.forward(script, { from: rootAccount })
 
-        const expectedNumberOfLocks = addressLocks + 1
-        const actualNumberOfLocks = await lockForwarder.getNumberOfLocks(rootAccount)
-
-        const [_, lockAmount] = await lockForwarder.addressesWithdrawLocks(rootAccount, 0)
-        const expectedBalance = MOCK_TOKEN_BALANCE - INITIAL_LOCK_AMOUNT
+        const actualCounter = await executionTarget.counter()
+        const actualLockerBalance = await mockErc20.balanceOf(rootAccount)
+        const actualLockAppBalance = await mockErc20.balanceOf(lockForwarder.address)
+        const actualNumberOfLocks = await lockForwarder.getWithdrawLocksCount(rootAccount)
+        const { lockAmount: actualLockAmount } = await lockForwarder.addressesWithdrawLocks(rootAccount, 0)
 
         //forwarded successfully
-        assert.equal(await executionTarget.counter(), 1)
+        assert.equal(actualCounter, expectedCounter)
 
         //transfered tokens successfully
-        assert.equal(await mockErc20.balanceOf(rootAccount), expectedBalance)
-        assert.equal(await mockErc20.balanceOf(lockForwarder.address), INITIAL_LOCK_AMOUNT)
+        assert.equal(actualLockerBalance, expectedLockerBalance)
+        assert.equal(actualLockAppBalance, expectedLockAppBalance)
 
         //lock created successfully
-        assert.equal(expectedNumberOfLocks, actualNumberOfLocks)
-        assert.equal(lockAmount, INITIAL_LOCK_AMOUNT)
+        assert.equal(actualNumberOfLocks, expectedNumberOfLocks)
+        assert.equal(actualLockAmount, expectedLockAmount)
       })
 
-      it('cannot forward action', async () => {
-        //forward without approving lock-app to make the transfer
+      it('cannot forward action without approving lock-app to make the transfer', async () => {
         await assertRevert(lockForwarder.forward(script, { from: rootAccount }), 'LOCK_CAN_NOT_FORWARD')
       })
-    })
 
-    describe('withdrawTokens()', async () => {
-      let numberOfLocks = 3
+      describe('withdrawTokens()', async () => {
+        let lockCount = 3
 
-      beforeEach(async () => {
-        //create script
-        const executionTarget = await ExecutionTarget.new()
-        const action = {
-          to: executionTarget.address,
-          calldata: executionTarget.contract.execute.getData(),
-        }
-        const script = encodeCallScript([action])
-
-        await mockErc20.approve(lockForwarder.address, numberOfLocks * INITIAL_LOCK_AMOUNT, {
-          from: rootAccount,
-        })
-
-        for (let i = 0; i < numberOfLocks; i++) await lockForwarder.forward(script, { from: rootAccount })
-      })
-
-      it("doesn't withdraw tokens (unlock time has not elapsed)", async () => {
-        await lockForwarder.withdrawTokens(numberOfLocks, { from: rootAccount })
-
-        assert.equal(numberOfLocks, await lockForwarder.getNumberOfLocks(rootAccount))
-      })
-
-      it("can't withdraw more than locked", async () => {
-        await assertRevert(lockForwarder.withdrawTokens(numberOfLocks + 1), 'LOCK_TOO_MANY_WITHDRAW_LOCKS')
-      })
-
-      it('withdraws 1 locked token', async () => {
-        const locksToWithdraw = 1
-        //increase time
-        await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
-
-        const addressPrevBalance = await mockErc20.balanceOf(rootAccount)
-        await lockForwarder.withdrawTokens(locksToWithdraw, { from: rootAccount })
-
-        const expectedBalance = addressPrevBalance.toNumber() + locksToWithdraw * INITIAL_LOCK_AMOUNT
-
-        assert.equal(expectedBalance, await mockErc20.balanceOf(rootAccount))
-        assert.equal(numberOfLocks - 1, await lockForwarder.getNumberOfLocks(rootAccount))
-      })
-
-      //Having issue when calling withdrawTokens() (Invalid number of arguments in Solidity function)
-      it(`withdraws all locked tokens (${numberOfLocks})`, async () => {
-        //increase time
-        await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
-        await lockForwarder.withdrawTokens(numberOfLocks, { from: rootAccount })
-
-        assert.equal(0, await lockForwarder.getNumberOfLocks(rootAccount))
-      })
-
-      describe('Change configuration parameters', async () => {
         beforeEach(async () => {
-          await daoDeployment.acl.createPermission(
-            rootAccount,
-            lockForwarder.address,
-            CHANGE_DURATION_ROLE,
-            rootAccount
-          )
-          await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, CHANGE_AMOUNT_ROLE, rootAccount)
+          await mockErc20.approve(lockForwarder.address, lockCount * INITIAL_LOCK_AMOUNT, {
+            from: rootAccount,
+          })
+
+          for (let i = 0; i < lockCount; i++) await lockForwarder.forward(script, { from: rootAccount })
         })
 
-        it("does not change current locks's unlockTime", async () => {
-          const locksToWithdraw = 1
-          const newLockDuration = 120
-          await lockForwarder.changeLockDuration(newLockDuration)
+        it("doesn't withdraw tokens before lock duration has elapsed", async () => {
+          const expectedLockCount = lockCount
 
-          //current locks's unlockTime is 60
+          await lockForwarder.withdrawTokens(lockCount, { from: rootAccount })
+
+          const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
+          assert.equal(actualLockCount, expectedLockCount)
+        })
+
+        it("can't withdraw more than locked", async () => {
+          await assertRevert(lockForwarder.withdrawTokens(lockCount + 1), 'LOCK_TOO_MANY_WITHDRAW_LOCKS')
+        })
+
+        it('withdraws 1 locked token', async () => {
+          const locksToWithdraw = 1
+          const addressPrevBalance = await mockErc20.balanceOf(rootAccount)
+
+          const expectedLockCount = lockCount - locksToWithdraw
+          const expectedBalance = addressPrevBalance.toNumber() + locksToWithdraw * INITIAL_LOCK_AMOUNT
+
+          //increase time
           await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
           await lockForwarder.withdrawTokens(locksToWithdraw, { from: rootAccount })
 
-          assert.equal(numberOfLocks - locksToWithdraw, await lockForwarder.getNumberOfLocks(rootAccount))
+          const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
+          const actualBalance = await mockErc20.balanceOf(rootAccount)
+          assert.equal(actualLockCount, expectedLockCount)
+          assert.equal(actualBalance, expectedBalance)
         })
 
-        it("does not change current locks's lockAmount", async () => {
-          const locksToWithdraw = 1
-          const previousBalance = await mockErc20.balanceOf(rootAccount)
-          const newLockAmount = 20
+        //Having issue when calling withdrawTokens() (Invalid number of arguments in Solidity function)
+        it(`withdraws all locked tokens (${lockCount})`, async () => {
+          const expectedLockCount = 0
 
-          await lockForwarder.changeLockAmount(newLockAmount)
-
-          //current locks's lockAmount is 10
+          //increase time
           await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
-          await lockForwarder.withdrawTokens(locksToWithdraw, { from: rootAccount })
+          await lockForwarder.withdrawTokens(lockCount, { from: rootAccount })
 
-          assert.equal(previousBalance.toNumber() + INITIAL_LOCK_AMOUNT, await mockErc20.balanceOf(rootAccount))
+          const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
+          assert.equal(actualLockCount, expectedLockCount)
+        })
+
+        describe('Change configuration parameters', async () => {
+          beforeEach(async () => {
+            await daoDeployment.acl.createPermission(
+              rootAccount,
+              lockForwarder.address,
+              CHANGE_DURATION_ROLE,
+              rootAccount
+            )
+            await daoDeployment.acl.createPermission(
+              rootAccount,
+              lockForwarder.address,
+              CHANGE_AMOUNT_ROLE,
+              rootAccount
+            )
+          })
+
+          it("does not change current locks's unlockTime", async () => {
+            const locksToWithdraw = 1
+            const newLockDuration = 120
+
+            const expectedLockCount = lockCount - locksToWithdraw
+
+            await lockForwarder.changeLockDuration(newLockDuration)
+            //current locks's unlockTime is 60
+            await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
+            await lockForwarder.withdrawTokens(locksToWithdraw, { from: rootAccount })
+
+            const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
+            assert.equal(actualLockCount, expectedLockCount)
+          })
+
+          it("does not change current locks's lockAmount", async () => {
+            const locksToWithdraw = 1
+            const previousBalance = await mockErc20.balanceOf(rootAccount)
+            const newLockAmount = 20
+
+            const expectedBalance = previousBalance.toNumber() + INITIAL_LOCK_AMOUNT
+
+            await lockForwarder.changeLockAmount(newLockAmount)
+            //current locks's lockAmount is 10
+            await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
+            await lockForwarder.withdrawTokens(locksToWithdraw, { from: rootAccount })
+
+            const actualBalance = await mockErc20.balanceOf(rootAccount)
+            assert.equal(actualBalance, expectedBalance)
+          })
         })
       })
     })
