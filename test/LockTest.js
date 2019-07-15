@@ -179,18 +179,12 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           assert.equal(actualLockCount, expectedLockCount)
         })
 
-        describe('Change configuration parameters', async () => {
+        describe('changeLockDuration(uint256 _lockDuration)', async () => {
           beforeEach(async () => {
             await daoDeployment.acl.createPermission(
               rootAccount,
               lockForwarder.address,
               CHANGE_DURATION_ROLE,
-              rootAccount
-            )
-            await daoDeployment.acl.createPermission(
-              rootAccount,
-              lockForwarder.address,
-              CHANGE_AMOUNT_ROLE,
               rootAccount
             )
           })
@@ -208,6 +202,17 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
             const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
             assert.equal(actualLockCount, expectedLockCount)
+          })
+        })
+
+        describe('changeLockAmount(uint256 _lockAmount)', async () => {
+          beforeEach(async () => {
+            await daoDeployment.acl.createPermission(
+              rootAccount,
+              lockForwarder.address,
+              CHANGE_AMOUNT_ROLE,
+              rootAccount
+            )
           })
 
           it("does not change current locks's lockAmount", async () => {
