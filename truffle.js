@@ -1,7 +1,6 @@
 /**
  * https://github.com/aragon/aragonOS/blob/v4.0.0/truffle-config.js
  */
-
 require('babel-register')
 require('babel-polyfill')
 
@@ -38,7 +37,7 @@ const providerForNetwork = network => () => {
   let { rpc, keys } = settingsForNetwork(network)
   rpc = rpc || defaultRPC(network)
 
-  if (!keys || keys.length == 0) {
+  if (!keys || keys.length === 0) {
     return new HDWalletProvider(mnemonic(), rpc)
   }
 
@@ -63,6 +62,13 @@ module.exports = {
     rinkeby: {
       network_id: 4,
       provider: providerForNetwork('rinkeby'),
+    },
+    coverage: {
+      host: 'localhost',
+      network_id: '*',
+      port: 8555,
+      gas: 0xffffffffff,
+      gasPrice: 0x01,
     },
   },
   // Configure your compilers
