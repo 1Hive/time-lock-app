@@ -21,7 +21,7 @@ We do not protect the lock function with a role, so anyone is able to make locks
 
 ### Initialization
 
-The deposits app is initialized with a `duration`, `token`, and `lock_amount` parameters which determines how long deposits are locked. The `token` parameter can be set at initialization and not changed, if a change is necessary the user can install a new instance and change permissions in the organization to reflect the change.
+The deposits app is initialized with a `duration`, `token`, and `lock_amount` parameters which determines how long deposits are locked. The `token` parameter can be set at initialization and not changed. If a change is necessary the user can install a new instance and change permissions in the organization to reflect the change.
 
 ### Roles
 
