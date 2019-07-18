@@ -99,6 +99,11 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
         return true;
     }
 
+    /**
+    * @notice Tells whether the _sender can forward actions or not
+    * @dev IForwarder interface conformance. It assumes the sender can always forward actions through the Tollgate app.
+    * @return True if contract is allowed to transfer at least lockAmount tokens from _sender to itself
+    */
     function canForward(address _sender, bytes) public view returns (bool) {
         bool allowanceAvailable = token.allowance(_sender, address(this)) >= lockAmount;
         return allowanceAvailable;
