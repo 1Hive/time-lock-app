@@ -8,9 +8,9 @@
  * you are free to choose a different license for the rest of the project.
  */
 
-pragma solidity 0.4.24;
+pragma solidity ^0.4.24;
 
-import "../Lock.sol";
+
 import "@aragon/os/contracts/factory/DAOFactory.sol";
 import "@aragon/os/contracts/apm/Repo.sol";
 import "@aragon/os/contracts/lib/ens/ENS.sol";
@@ -21,7 +21,7 @@ import "@aragon/apps-voting/contracts/Voting.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
-
+import "../Lock.sol";
 
 
 contract TemplateBase is APMNamehash {
