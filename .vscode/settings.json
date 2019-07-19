@@ -5,6 +5,7 @@
   "prettier.trailingComma": "es5",
   "prettier.semi": false,
   "prettier.bracketSpacing": true,
+  "prettier.printWidth": 120,
 
   "solidity.packageDefaultDependenciesContractsDirectory": "",
   "solidity.packageDefaultDependenciesDirectory": "node_modules",
