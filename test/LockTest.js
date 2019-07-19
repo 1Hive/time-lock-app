@@ -50,9 +50,18 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       assert.isTrue(hasInitialized)
     })
 
+    it("get's forwarding fee information", async () => {
+      const [actualToken, actualLockAmount] = Object.values(await lockForwarder.forwardFee()) 
+      
+      assert.strictEqual(actualToken, mockErc20.address)
+      assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
+    })
+
     it('checks it is forwarder', async () => {
       assert.isTrue(await lockForwarder.isForwarder())
     })
+
+
 
     describe('changeLockDuration(uint256 _lockDuration)', () => {
       it('sets a new lock duration', async () => {
