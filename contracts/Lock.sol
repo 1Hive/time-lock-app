@@ -2,11 +2,12 @@ pragma solidity ^0.4.24;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/IForwarder.sol";
+import "@aragon/os/contracts/common/IForwarderFee.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "./lib/WithdrawLockLib.sol";
 
-contract Lock is AragonApp, IForwarder {
+contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     using SafeMath for uint256;
     using WithdrawLockLib for WithdrawLockLib.WithdrawLock[];
@@ -78,10 +79,31 @@ contract Lock is AragonApp, IForwarder {
        _withdrawTokens(_numberWithdrawLocks);
     }
 
+
+    /**
+    * @notice Tells the forward fee token and amount of the Tollgate app
+    * @dev IFeeForwarder interface conformance
+    * @return Forwarder token address
+    * @return Forwarder lock amount
+    */
+    function forwardFee() external view returns (address, uint256) {
+        return (address(token), lockAmount);
+    }
+
+    /**
+    * @notice Tells whether the Tollgate app is a forwarder or not
+    * @dev IForwarder interface conformance
+    * @return Always true
+    */
     function isForwarder() external pure returns (bool) {
         return true;
     }
 
+    /**
+    * @notice Tells whether the _sender can forward actions or not
+    * @dev IForwarder interface conformance. It assumes the sender can always forward actions through the Tollgate app.
+    * @return True if contract is allowed to transfer at least lockAmount tokens from _sender to itself
+    */
     function canForward(address _sender, bytes) public view returns (bool) {
         bool allowanceAvailable = token.allowance(_sender, address(this)) >= lockAmount;
         return allowanceAvailable;

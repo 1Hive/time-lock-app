@@ -6,4 +6,7 @@ node_modules
 build/
 dist/
 
+coverage
+coverage.json
+
 package-lock.json
