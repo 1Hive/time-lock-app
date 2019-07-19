@@ -184,7 +184,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
           //increase time
           await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
-          await lockForwarder.withdrawTokens(lockCount, { from: rootAccount })
+          await lockForwarder.withdrawTokens()
 
           const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
           assert.equal(actualLockCount, expectedLockCount)

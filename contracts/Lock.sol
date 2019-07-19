@@ -76,9 +76,8 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @param _numberWithdrawLocks The number of withdraw locks to attempt withdrawal from
     */
     function withdrawTokens(uint256 _numberWithdrawLocks) external {
-       _withdrawTokens(_numberWithdrawLocks);
+        _withdrawTokens(_numberWithdrawLocks);
     }
-
 
     /**
     * @notice Tells the forward fee token and amount of the Tollgate app
