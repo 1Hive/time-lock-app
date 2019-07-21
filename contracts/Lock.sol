@@ -3,12 +3,15 @@ pragma solidity ^0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/IForwarder.sol";
 import "@aragon/os/contracts/common/IForwarderFee.sol";
+import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "./lib/WithdrawLockLib.sol";
 
+
 contract Lock is AragonApp, IForwarder, IForwarderFee {
 
+    using SafeERC20 for ERC20;
     using SafeMath for uint256;
     using WithdrawLockLib for WithdrawLockLib.WithdrawLock[];
 
@@ -17,6 +20,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
     string private constant ERROR_CAN_NOT_FORWARD = "LOCK_CAN_NOT_FORWARD";
+    string private constant ERROR_TRANSFER_REVERTED = "LOCK_TRANSFER_REVERTED";
 
     ERC20 public token;
     uint256 public lockDuration;
@@ -68,7 +72,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     */
     function withdrawTokens() external {
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-        _withdrawTokens(addressWithdrawLocks.length);
+        _withdrawTokens(msg.sender, addressWithdrawLocks.length);
     }
 
     /**
@@ -76,7 +80,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @param _numberWithdrawLocks The number of withdraw locks to attempt withdrawal from
     */
     function withdrawTokens(uint256 _numberWithdrawLocks) external {
-        _withdrawTokens(_numberWithdrawLocks);
+        _withdrawTokens(msg.sender, _numberWithdrawLocks);
     }
 
     /**
@@ -103,9 +107,10 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @dev IForwarder interface conformance. It assumes the sender can always forward actions through the Tollgate app.
     * @return True if contract is allowed to transfer at least lockAmount tokens from _sender to itself
     */
-    function canForward(address _sender, bytes) public view returns (bool) {
-        bool allowanceAvailable = token.allowance(_sender, address(this)) >= lockAmount;
-        return allowanceAvailable;
+    function canForward(address, bytes) public view returns (bool) {
+        // bool allowanceAvailable = token.allowance(_sender, address(this)) >= lockAmount;
+        // return allowanceAvailable;
+        return hasInitialized();
     }
 
     /**
@@ -120,7 +125,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
         uint256 duration = getTimestamp().add(lockDuration);
         addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(duration, lockAmount));
 
-        token.transferFrom(msg.sender, address(this), lockAmount);
+        require(token.safeTransferFrom(msg.sender, address(this), lockAmount), ERROR_TRANSFER_REVERTED);
 
         runScript(_evmCallScript, new bytes(0), new address[](0));
     }
@@ -129,9 +134,9 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
         return addressesWithdrawLocks[_lockAddress].length;
     }
 
-    function _withdrawTokens(uint256 _numberWithdrawLocks) internal {
-        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[msg.sender];
-        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocksCopy = addressesWithdrawLocks[msg.sender];
+    function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {
+        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[_sender];
+        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocksCopy = addressesWithdrawLocks[_sender];
 
         require(_numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
 
@@ -148,8 +153,8 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
                 addressWithdrawLocksStorage.deleteItem(withdrawLock);
             }
         }
-        token.transfer(msg.sender, amountOwed);
+        token.transfer(_sender, amountOwed);
 
-        emit Withdrawal(msg.sender, withdrawLockCount);
+        emit Withdrawal(_sender, withdrawLockCount);
     }
 }
