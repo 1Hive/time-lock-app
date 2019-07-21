@@ -4,7 +4,6 @@ const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
 const ExecutionTarget = artifacts.require('ExecutionTarget')
 const Lock = artifacts.require('LockMock')
 const MockErc20 = artifacts.require('TokenMock')
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 import DaoDeployment from './helpers/DaoDeployment'
 import { deployedContract } from './helpers/helpers'
