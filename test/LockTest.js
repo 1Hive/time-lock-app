@@ -17,14 +17,14 @@ contract('Lock', ([rootAccount, ...accounts]) => {
   const INITIAL_LOCK_DURATION = 60 // seconds
   const INITIAL_LOCK_AMOUNT = 10
 
-  before(async () => {
+  before('deploy DAO', async () => {
     await daoDeployment.deployBefore()
     lockBase = await Lock.new()
     CHANGE_DURATION_ROLE = await lockBase.CHANGE_DURATION_ROLE()
     CHANGE_AMOUNT_ROLE = await lockBase.CHANGE_AMOUNT_ROLE()
   })
 
-  beforeEach(async () => {
+  beforeEach('install lock-app', async () => {
     await daoDeployment.deployBeforeEach(rootAccount)
     const newLockAppReceipt = await daoDeployment.kernel.newAppInstance('0x1234', lockBase.address, '0x', false, {
       from: rootAccount,
@@ -34,7 +34,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
   })
 
   describe('initialize(address _token, uint256 _lockDuration, uint256 _lockAmount)', () => {
-    beforeEach(async () => {
+    beforeEach('initialize lock-app', async () => {
       await lockForwarder.initialize(mockErc20.address, INITIAL_LOCK_DURATION, INITIAL_LOCK_AMOUNT)
     })
 
@@ -50,15 +50,19 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       assert.isTrue(hasInitialized)
     })
 
+    it('checks it is forwarder', async () => {
+      assert.isTrue(await lockForwarder.isForwarder())
+    })
+
+    it('can forward', async () => {
+      assert.isTrue(await lockForwarder.canForward(rootAccount, '0x'))
+    })
+
     it("get's forwarding fee information", async () => {
       const [actualToken, actualLockAmount] = Object.values(await lockForwarder.forwardFee())
 
       assert.strictEqual(actualToken, mockErc20.address)
       assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
-    })
-
-    it('checks it is forwarder', async () => {
-      assert.isTrue(await lockForwarder.isForwarder())
     })
 
     describe('changeLockDuration(uint256 _lockDuration)', () => {
@@ -89,7 +93,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       let executionTarget, script
       let addressLocks = 0
 
-      beforeEach(async () => {
+      beforeEach('create execution script', async () => {
         //create script
         executionTarget = await ExecutionTarget.new()
         const action = {
@@ -131,14 +135,14 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         assert.equal(actualLockAmount, expectedLockAmount)
       })
 
-      it('cannot forward action without approving lock-app to make the transfer', async () => {
-        await assertRevert(lockForwarder.forward(script, { from: rootAccount }), 'LOCK_CAN_NOT_FORWARD')
+      it('cannot forward if sender does not approve lock-app to transfer tokens', async () => {
+        await assertRevert(lockForwarder.forward(script, { from: rootAccount }), 'LOCK_TRANSFER_REVERTED')
       })
 
       describe('withdrawTokens()', async () => {
         let lockCount = 3
 
-        beforeEach(async () => {
+        beforeEach('Forward actions', async () => {
           await mockErc20.approve(lockForwarder.address, lockCount * INITIAL_LOCK_AMOUNT, {
             from: rootAccount,
           })
