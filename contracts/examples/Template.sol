@@ -43,6 +43,13 @@ contract TemplateBase is APMNamehash {
         }
     }
 
+    function latestVersionAppBase(bytes32 appId) public view returns (address base) {
+        Repo repo = Repo(PublicResolver(ens.resolver(appId)).addr(appId));
+        (,base,) = repo.getLatest();
+
+        return base;
+    }
+
     function installApp(Kernel dao, bytes32 appId) internal returns (address) {
         address instance = address(dao.newAppInstance(appId, latestVersionAppBase(appId)));
         emit InstalledApp(instance, appId);
@@ -53,13 +60,6 @@ contract TemplateBase is APMNamehash {
         address instance = address(dao.newAppInstance(appId, latestVersionAppBase(appId), new bytes(0), true));
         emit InstalledApp(instance, appId);
         return instance;
-    }
-
-    function latestVersionAppBase(bytes32 appId) public view returns (address base) {
-        Repo repo = Repo(PublicResolver(ens.resolver(appId)).addr(appId));
-        (,base,) = repo.getLatest();
-
-        return base;
     }
 }
 
