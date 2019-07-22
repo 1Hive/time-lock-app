@@ -33,6 +33,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
+    event NewLock(address lockAddress, uint256 unlockTime, uint256 lockAmount);
     event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 
     /**
@@ -122,11 +123,12 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-        uint256 duration = getTimestamp().add(lockDuration);
-        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(duration, lockAmount));
+        uint256 unlockTime = getTimestamp().add(lockDuration);
+        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(unlockTime, lockAmount));
 
         require(token.safeTransferFrom(msg.sender, address(this), lockAmount), ERROR_TRANSFER_REVERTED);
 
+        emit NewLock(msg.sender, unlockTime, lockAmount);
         runScript(_evmCallScript, new bytes(0), new address[](0));
     }
 
