@@ -1,10 +1,12 @@
 {
-  "name": "Application",
-  "description": "An application for Aragon",
-  "icons": [{
-    "src": "/meta/icon.png",
-    "sizes": "192x192"
-  }],
+  "name": "Lock",
+  "description": "",
+  "icons": [
+    {
+      "src": "/meta/icon.png",
+      "sizes": "192x192"
+    }
+  ],
   "start_url": "/index.html",
   "script": "/meta/script.js"
 }
