@@ -1,6 +1,6 @@
 {
   "name": "Lock",
-  "description": "",
+  "description": "Require users to lock tokens for a configurable period of time in order to forward an intent",
   "icons": [
     {
       "src": "/meta/icon.png",
