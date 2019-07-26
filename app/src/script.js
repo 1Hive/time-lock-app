@@ -3,7 +3,6 @@ import 'regenerator-runtime/runtime'
 import Aragon, { events } from '@aragon/api'
 import { addressesEqual } from './lib/web3-utils'
 import tokenAbi from './abi/token.json'
-import { forkJoin } from 'rxjs'
 
 const app = new Aragon()
 
@@ -22,7 +21,6 @@ async function initialize(tokenAddress) {
 async function createStore(tokenContract) {
   const currentBlock = await getBlockNumber()
 
-  console.log('creating store')
   return app.store(
     (state, { event, returnValues, blockNumber }) => {
       //dont want to listen for past events for now
