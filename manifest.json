@@ -8,5 +8,5 @@
     }
   ],
   "start_url": "/index.html",
-  "script": "/meta/script.js"
+  "script": "/script.js"
 }
