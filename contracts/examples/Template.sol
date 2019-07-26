@@ -117,8 +117,8 @@ contract Template is TemplateBase {
         acl.createPermission(voting, finance, finance.EXECUTE_PAYMENTS_ROLE(), voting);
         acl.createPermission(voting, finance, finance.MANAGE_PAYMENTS_ROLE(), voting);
 
-        acl.createPermission(voting, lock, lock.CHANGE_DURATION_ROLE(), voting);
-        acl.createPermission(voting, lock, lock.CHANGE_AMOUNT_ROLE(), voting);
+        acl.createPermission(root, lock, lock.CHANGE_DURATION_ROLE(), voting);
+        acl.createPermission(root, lock, lock.CHANGE_AMOUNT_ROLE(), voting);
 
         // Clean up permissions
         acl.grantPermission(root, dao, dao.APP_MANAGER_ROLE());

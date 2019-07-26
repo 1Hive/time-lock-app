@@ -1,57 +1,30 @@
 import 'core-js/stable'
 import 'regenerator-runtime/runtime'
-import { map, publishReplay } from 'rxjs/operators'
-import { of } from 'rxjs'
-import AragonApi from '@aragon/api'
-
+import Aragon, { events } from '@aragon/api'
 import { addressesEqual } from './lib/web3-utils'
 import tokenAbi from './abi/token.json'
+import { forkJoin } from 'rxjs'
 
-const INITIALIZATION_TRIGGER = Symbol('INITIALIZATION_TRIGGER')
-const ACCOUNTS_TRIGGER = Symbol('ACCOUNTS_TRIGGER')
+const app = new Aragon()
 
-const api = new AragonApi()
-
-api.indentify('Lock')
-
-api
+app
   .call('token')
   .subscribe(initialize, err =>
     console.error(`Could not start background script execution due to the contract not loading token: ${err}`)
   )
 
 async function initialize(tokenAddress) {
-  const tokenContract = api.external(tokenAddress, tokenAbi)
+  const tokenContract = app.external(tokenAddress, tokenAbi)
 
-  return createStore({
-    token: {
-      address: tokenAddress,
-      contract: tokenContract,
-    },
-  })
+  return createStore(tokenContract)
 }
 
-async function createStore(settings) {
-  // Hot observable which emits an web3.js event-like object with an account string of the current active account.
-  const accounts$ = api.accounts().pipe(
-    map(accounts => {
-      return {
-        event: ACCOUNTS_TRIGGER,
-        account: accounts[0],
-      }
-    }),
-    publishReplay(1)
-  )
-
-  accounts$.connect()
-
+async function createStore(tokenContract) {
   const currentBlock = await getBlockNumber()
 
-  return api.store(
-    async (state, event) => {
-      const { event: eventName, blockNumber } = event
-
-      console.log('event', event)
+  console.log('creating store')
+  return app.store(
+    (state, { event, returnValues, blockNumber }) => {
       //dont want to listen for past events for now
       //(our app state can be obtained from smart contract vars)
       if (blockNumber && blockNumber <= currentBlock) return state
@@ -60,35 +33,28 @@ async function createStore(settings) {
         ...state,
       }
 
-      if (eventName === INITIALIZATION_TRIGGER) {
-        nextState = await initializeState(nextState, settings)
-      } else if (eventName === ACCOUNTS_TRIGGER) {
-        nextState = await updateConnectedAccount(nextState, event)
-      } else {
-        switch (eventName) {
-          case 'ChangeLockDuration':
-            nextState = await updateLockDuration(nextState, event)
-            break
-          case 'ChangeLockAmount':
-            nextState = await updateLockAmount(nextState, event)
-            break
-          case 'NewLock':
-            nextState = await newLock(nextState, event)
-          case 'Withdrawal':
-            nextState = await newWithdrawal(nextState, event)
-            break
-          default:
-            break
-        }
+      switch (event) {
+        case events.ACCOUNTS_TRIGGER:
+          return updateConnectedAccount(nextState, returnValues)
+        case events.SYNC_STATUS_SYNCING:
+          return { ...nextState, isSyncing: true }
+        case events.SYNC_STATUS_SYNCED:
+          return { ...nextState, isSyncing: false }
+        case 'ChangeLockDuration':
+          return updateLockDuration(nextState, returnValues)
+        case 'ChangeLockAmount':
+          return updateLockAmount(nextState, returnValues)
+        case 'NewLock':
+          return newLock(nextState, returnValues)
+        case 'Withdrawal':
+          return newWithdrawal(nextState, returnValues)
+        default:
+          return state
       }
-
-      return nextState
     },
-    [
-      // Always initialize the store with our own home-made event
-      of({ event: INITIALIZATION_TRIGGER }),
-      accounts$,
-    ]
+    {
+      init: initializeState({}, tokenContract),
+    }
   )
 }
 
@@ -98,19 +64,26 @@ async function createStore(settings) {
  *                     *
  ***********************/
 
-async function initializeState(state, settings) {
-  return {
-    ...state,
-    token: await getTokenData(settings),
+function initializeState(state, tokenContract) {
+  return async cachedState => {
+    let token = await getTokenData(tokenContract)
+    token && app.indentify(`Lock ${token.symbol}`)
+
+    return {
+      ...state,
+      isSyncing: true,
+      token,
+      lock: await getLockSettings(),
+    }
   }
 }
 
 async function updateConnectedAccount(state, { account }) {
-  const lockCount = await api.call('getWithdrawLocksCount', account).toPromise()
+  const lockCount = await app.call('getWithdrawLocksCount', account).toPromise()
   const locks = []
 
   for (let i = 0; i < lockCount; i++) {
-    let { unlockTime, lockAmount } = await api.call('addressesWithdrawLocks', account, i).toPromise()
+    let { unlockTime, lockAmount } = await app.call('addressesWithdrawLocks', account, i).toPromise()
     locks.push({ unlockTime, lockAmount })
   }
 
@@ -121,22 +94,21 @@ async function updateConnectedAccount(state, { account }) {
   }
 }
 
-async function updateLockDuration(state, { returnValues: { newLockDuration } }) {
+async function updateLockDuration({ lock, ...state }, { newLockDuration }) {
   return {
     ...state,
-    lockDuration: newLockDuration,
+    lock: { ...lock, duration: newLockDuration },
   }
 }
 
-async function updateLockAmount(state, { returnValues: { newLockAmount } }) {
+async function updateLockAmount({ lock, ...state }, { newLockAmount }) {
   return {
     ...state,
-    lockAmount: newLockAmount,
+    lock: { ...lock, amount: newLockAmount },
   }
 }
 
-async function newLock(state, { returnValues }) {
-  const { lockAddress, unlockTime, lockAmount } = returnValues
+async function newLock(state, { lockAddress, unlockTime, lockAmount }) {
   const { account, locks } = state
 
   //skip if no connected account or new lock doesn't correspond to connected account
@@ -148,8 +120,7 @@ async function newLock(state, { returnValues }) {
   }
 }
 
-async function newWithdrawal(state, { returnValues }) {
-  const { withdrawalAddress, withdrawalLockCount } = returnValues
+async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) {
   const { account, locks } = state
 
   //skip if no connected account or new withdrawl doesn't correspond to connected account
@@ -167,22 +138,42 @@ async function newWithdrawal(state, { returnValues }) {
  *                     *
  ***********************/
 
-async function getTokenData({ token }) {
-  //TODO: check for contracts that use bytes32 as symbol() reutrn value (same for name)
-  const { contract } = token
-  const [name, symbol, decimals] = await Promise.all([
-    contract.name().toPromise(),
-    contract.symbol().toPromise(),
-    contract.decimals().toPromise(),
-  ])
+async function getTokenData(contract) {
+  try {
+    //TODO: check for contracts that use bytes32 as symbol() return value (same for name)
+    const [name, symbol, decimals] = await Promise.all([
+      contract.name().toPromise(),
+      contract.symbol().toPromise(),
+      contract.decimals().toPromise(),
+    ])
 
-  return {
-    name,
-    symbol,
-    decimals,
+    return {
+      name,
+      symbol,
+      decimals,
+    }
+  } catch (err) {
+    console.error('Error loading token data: ', err)
+    return {}
+  }
+}
+
+async function getLockSettings() {
+  try {
+    const [duration, amount] = await Promise.all([
+      app.call('lockDuration').toPromise(),
+      app.call('lockAmount').toPromise(),
+    ])
+    return {
+      duration,
+      amount,
+    }
+  } catch (err) {
+    console.error('Error loading lock settings: ', err)
+    return {}
   }
 }
 
 function getBlockNumber() {
-  return new Promise((resolve, reject) => api.web3Eth('getBlockNumber').subscribe(resolve, reject))
+  return new Promise((resolve, reject) => app.web3Eth('getBlockNumber').subscribe(resolve, reject))
 }
