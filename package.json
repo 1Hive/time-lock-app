@@ -49,6 +49,7 @@
     "publish:patch": "aragon apm publish patch",
     "publish:minor": "aragon apm publish minor",
     "publish:major": "aragon apm publish major",
+    "deploy:staging": "npm run publish:major -- --environment staging",
     "versions": "aragon apm versions",
     "lint": "eslint . & solium --dir ./contracts",
     "lint:fix": "eslint . --fix & solium --dir ./contracts --fix",
