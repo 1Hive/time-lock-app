@@ -15,14 +15,11 @@ class App extends React.Component {
   render() {
     const { appState } = this.props
 
+    console.log('state', appState)
 
     return (
       <Main>
-        <AppLayout
-          title="Lock"
-          mainButton={null}
-          smallViewPadding={0}
-        ></AppLayout>
+        <AppLayout title="Lock" mainButton={null} smallViewPadding={0}></AppLayout>
         <SidePanel></SidePanel>
       </Main>
     )
