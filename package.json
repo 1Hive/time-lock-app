@@ -7,7 +7,7 @@
     "@aragon/os": "^4.0.1"
   },
   "devDependencies": {
-    "@aragon/cli": "^5.9.3",
+    "@aragon/cli": "^5.9.7",
     "@aragon/apps-finance": "^3.0.0",
     "@aragon/apps-vault": "^4.1.0",
     "@aragon/apps-voting": "^2.1.0",

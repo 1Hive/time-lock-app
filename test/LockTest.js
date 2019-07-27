@@ -253,4 +253,22 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       })
     })
   })
+
+  describe('app not initialized', () => {
+    it('reverts on forwarding', async () => {
+      await assertRevert(lockForwarder.forward('0x', { from: rootAccount }), 'LOCK_CAN_NOT_FORWARD')
+    })
+
+    it('reverts on changing duration', async () => {
+      await assertRevert(lockForwarder.changeLockDuration(20))
+    })
+
+    it('reverts on changing amount', async () => {
+      await assertRevert(lockForwarder.changeLockAmount(10))
+    })
+
+    it('reverts on withdrawing tokens', async () => {
+      await assertRevert(lockForwarder.withdrawTokens())
+    })
+  })
 })
