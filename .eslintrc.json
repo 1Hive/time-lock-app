@@ -12,7 +12,7 @@
     },
     "sourceType": "module"
   },
-  "plugins": ["prettier", "react"],
+  "plugins": ["prettier", "react", "react-hooks"],
   "rules": {
     "valid-jsdoc": "error",
     "react/prop-types": 0,
@@ -27,6 +27,8 @@
         "printWidth": 120
       }
     ],
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
     "linebreak-style": ["error", "unix"],
     "tabSize": 2,
     "formatOnSave": true
