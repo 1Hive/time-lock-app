@@ -1,16 +1,14 @@
 import React from 'react'
 import styled from 'styled-components'
 import { EmptyStateCard } from '@aragon/ui'
-// import emptyIcon from '../assets/empty-card-icon.svg'
+import emptyIcon from '../assets/empty-card-icon.svg'
 
 const EmptyState = ({ onActivate }) => (
   <Main>
     <EmptyStateCard
-      // icon={<img src={emptyIcon} alt="" />}
+      icon={<img src={emptyIcon} alt="" />}
       title="You have no tokens locked"
       // text="Add tokens to get started."
-      // actionText="Add token"
-      // onActivate={onActivate}
     />
   </Main>
 )

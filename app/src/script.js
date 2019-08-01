@@ -3,22 +3,27 @@ import 'regenerator-runtime/runtime'
 import Aragon, { events } from '@aragon/api'
 import { addressesEqual } from './lib/web3-utils'
 import tokenAbi from './abi/token.json'
+import retryEvery from './lib/retry-every'
 
 const app = new Aragon()
 
-app
-  .call('token')
-  .subscribe(initialize, err =>
-    console.error(`Could not start background script execution due to the contract not loading token: ${err}`)
-  )
+retryEvery(() =>
+  app
+    .call('token')
+    .subscribe(initialize, err =>
+      console.error(
+        `Could not start background script execution due to the contract not loading token: ${err}`
+      )
+    )
+)
 
 async function initialize(tokenAddress) {
   const tokenContract = app.external(tokenAddress, tokenAbi)
-
-  return createStore(tokenContract)
+  console.log('contract', tokenContract)
+  return createStore({ contract: tokenContract, address: tokenAddress })
 }
 
-async function createStore(tokenContract) {
+async function createStore(tokenInstance) {
   const currentBlock = await getBlockNumber()
 
   return app.store(
@@ -51,7 +56,7 @@ async function createStore(tokenContract) {
       }
     },
     {
-      init: initializeState({}, tokenContract),
+      init: initializeState({}, tokenInstance),
     }
   )
 }
@@ -62,16 +67,15 @@ async function createStore(tokenContract) {
  *                     *
  ***********************/
 
-function initializeState(state, tokenContract) {
+function initializeState(state, tokenInstance) {
   return async cachedState => {
-    let token = await getTokenData(tokenContract)
+    let token = await getTokenData(tokenInstance)
     token && app.indentify(`Lock ${token.symbol}`)
 
     return {
       ...state,
       isSyncing: true,
-      token,
-      lock: await getLockSettings(),
+      settings: { token, ...(await getLockSettings()) },
     }
   }
 }
@@ -81,7 +85,9 @@ async function updateConnectedAccount(state, { account }) {
   const locks = []
 
   for (let i = 0; i < lockCount; i++) {
-    let { unlockTime, lockAmount } = await app.call('addressesWithdrawLocks', account, i).toPromise()
+    let { unlockTime, lockAmount } = await app
+      .call('addressesWithdrawLocks', account, i)
+      .toPromise()
     locks.push({ unlockTime, lockAmount })
   }
 
@@ -92,17 +98,17 @@ async function updateConnectedAccount(state, { account }) {
   }
 }
 
-async function updateLockDuration({ lock, ...state }, { newLockDuration }) {
+async function updateLockDuration({ settings, ...state }, { newLockDuration }) {
   return {
     ...state,
-    lock: { ...lock, duration: newLockDuration },
+    settings: { ...settings, duration: newLockDuration },
   }
 }
 
-async function updateLockAmount({ lock, ...state }, { newLockAmount }) {
+async function updateLockAmount({ settings, ...state }, { newLockAmount }) {
   return {
     ...state,
-    lock: { ...lock, amount: newLockAmount },
+    settings: { ...settings, amount: newLockAmount },
   }
 }
 
@@ -118,7 +124,10 @@ async function newLock(state, { lockAddress, unlockTime, lockAmount }) {
   }
 }
 
-async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) {
+async function newWithdrawal(
+  state,
+  { withdrawalAddress, withdrawalLockCount }
+) {
   const { account, locks } = state
 
   //skip if no connected account or new withdrawl doesn't correspond to connected account
@@ -136,8 +145,9 @@ async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) 
  *                     *
  ***********************/
 
-async function getTokenData(contract) {
+async function getTokenData({ contract, address }) {
   try {
+    console.log('contract', contract)
     //TODO: check for contracts that use bytes32 as symbol() return value (same for name)
     const [name, symbol, decimals] = await Promise.all([
       contract.name().toPromise(),
@@ -146,6 +156,7 @@ async function getTokenData(contract) {
     ])
 
     return {
+      address,
       name,
       symbol,
       decimals,
@@ -173,5 +184,7 @@ async function getLockSettings() {
 }
 
 function getBlockNumber() {
-  return new Promise((resolve, reject) => app.web3Eth('getBlockNumber').subscribe(resolve, reject))
+  return new Promise((resolve, reject) =>
+    app.web3Eth('getBlockNumber').subscribe(resolve, reject)
+  )
 }
