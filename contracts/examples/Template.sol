@@ -93,7 +93,7 @@ contract Template is TemplateBase {
         Voting voting = Voting(installApp(dao, VOTING_APP_ID));
 
         MiniMeToken lockToken = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Lock token", 18, "LKT", true);
-        lockToken.generateTokens(root, 100e18);
+        lockToken.generateTokens(root, 300e18);
         lockToken.changeController(root);
 
         MiniMeToken token = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Test token", 18, "TST", true);
