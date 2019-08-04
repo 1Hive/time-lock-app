@@ -1,35 +1,57 @@
 import React from 'react'
 import styled from 'styled-components'
 
-import { TokenBadge, Text, breakpoint, theme, Box } from '@aragon/ui'
+import { TokenBadge, Text, theme, Box, IconAttention } from '@aragon/ui'
 import { useNetwork } from '@aragon/api-react'
 import { formatTokenAmount, formatTime } from '../lib/math-utils'
 
-function LockSettings({ token, duration, amount, network }) {
+function LockSettings({
+  duration,
+  amount,
+  tokenAddress,
+  tokenName,
+  tokenSymbol,
+  tokenDecimals,
+  network,
+}) {
   return (
-    <Box heading="Lock info">
-      <ul>
-        <InfoRow>
-          <Text>Duration</Text>
-          <Duration>{formatTime(duration)}</Duration>
-        </InfoRow>
-        <InfoRow>
-          <Text>Amount</Text>
-          <Text>{`${formatTokenAmount(amount, false, token.decimals)} ${
-            token.symbol
-          }`}</Text>
-        </InfoRow>
-        <InfoRow>
-          <Text>Token</Text>
-          <TokenBadge
-            address={token.address}
-            name={token.name}
-            symbol={token.symbol}
-            networkType={network.type}
-          />
-        </InfoRow>
-      </ul>
-    </Box>
+    <>
+      <Box heading="Lock info">
+        <ul>
+          <InfoRow>
+            <Text>Duration</Text>
+            <Duration>{formatTime(Math.round(duration / 1000))}</Duration>
+          </InfoRow>
+          <InfoRow>
+            <Text>Amount</Text>
+            <Text>{`${formatTokenAmount(
+              amount,
+              false,
+              tokenDecimals
+            )} ${tokenSymbol}`}</Text>
+          </InfoRow>
+          <InfoRow>
+            <Text>Token</Text>
+            {network && tokenSymbol && (
+              <TokenBadge
+                address={tokenAddress}
+                name={tokenName}
+                symbol={tokenSymbol}
+                networkType={network.type}
+              />
+            )}
+          </InfoRow>
+        </ul>
+      </Box>
+      <Box header="info" css={{ backgroundColor: theme.infoBackground }}>
+        <Wrap>
+          <IconAttention style={{ marginRight: '6px' }} />
+          <Text color={theme.infoSurfaceContent}>
+            You can withdraw your tokens once they unlock
+          </Text>
+        </Wrap>
+      </Box>
+    </>
   )
 }
 
@@ -48,6 +70,10 @@ const InfoRow = styled.li`
 const Duration = styled.div`
   display: flex;
   align-items: center;
+`
+
+const Wrap = styled.div`
+  display: flex;
 `
 
 export default props => {
