@@ -133,8 +133,8 @@ export function toHours(ms) {
  * @returns {string} formatted time
  */
 export function formatTime(time) {
-  const units = ['h', 'm', 's']
 
+  const units = ['h', 'm', 's']
   const hours = Math.floor(time / 3600)
   const minutes = Math.floor((time % 3600) / 60)
   const seconds = (time % 3600) % 60
