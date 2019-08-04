@@ -104,7 +104,7 @@ contract Template is TemplateBase {
         finance.initialize(vault, 30 days);
         lock.initialize(ERC20(lockToken), 90, 20e18);
         tokenManager.initialize(token, true, 0);
-        voting.initialize(token, 50 * PCT, 20 * PCT, 30);
+        voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
 
         acl.createPermission(this, tokenManager, tokenManager.MINT_ROLE(), this);
         acl.createPermission(voting, tokenManager, tokenManager.BURN_ROLE(), root);

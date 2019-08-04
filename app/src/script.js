@@ -149,7 +149,6 @@ async function newWithdrawal(
 
 async function getTokenData(contract) {
   try {
-    console.log('contract', contract)
     //TODO: check for contracts that use bytes32 as symbol() return value (same for name)
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       contract.name().toPromise(),

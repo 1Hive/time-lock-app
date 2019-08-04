@@ -41,7 +41,7 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
         } oldest lock${count.value == 1 ? '' : 's'}`}
       />
       <Row>
-        <Split border={String(theme.accent)}>
+        <Split>
           <h2>
             <Text smallcaps>Total locks</Text>
           </h2>

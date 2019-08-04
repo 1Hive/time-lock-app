@@ -1,7 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
 import { Text, useTheme, Box } from '@aragon/ui'
-import emptyIcon from '../assets/lock.svg'
 
 const EmptyState = () => {
   const theme = useTheme()
