@@ -1,5 +1,5 @@
 import React from 'react'
-import { Info, Text, IconCross, theme } from '@aragon/ui'
+import { Info, Text, IconCross } from '@aragon/ui'
 import styled from 'styled-components'
 
 const Message = styled.div`
@@ -9,7 +9,7 @@ const Message = styled.div`
 export const InfoMessage = ({ title, text }) => {
   return (
     <div style={{ marginBottom: '1rem' }}>
-      <Info.Action title={title} background={theme.infoBackground}>
+      <Info.Action title={title} mode="info">
         {text}
       </Info.Action>
     </div>

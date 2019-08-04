@@ -1,13 +1,12 @@
 import React from 'react'
 import styled from 'styled-components'
-import { useAragonApi } from '@aragon/api-react'
+import { useAragonApi, useAppState } from '@aragon/api-react'
 import { font } from '@aragon/ui'
 import MenuButton from './MenuButton/MenuButton'
 
 function Title({ text, after }) {
   const { requestMenu, displayMenuButton } = useAragonApi()
 
-  console.log('menubutton', displayMenuButton)
   return (
     <Wrapper>
       {displayMenuButton && <MenuButton onClick={requestMenu} />}
@@ -36,7 +35,8 @@ const Label = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-right: 10px;
-  ${font({ size: 'xxlarge' })};
+  font-size: 26px;
 `
+//TODO (fabri): replace font-size with ${font({ size: 'xxlarge' })}; when new client released
 
 export default Title

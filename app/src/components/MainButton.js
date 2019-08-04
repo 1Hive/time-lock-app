@@ -3,7 +3,6 @@ import styled from 'styled-components'
 import { Button, ButtonIcon, Viewport } from '@aragon/ui'
 
 function MainButton({ label, icon, onClick }) {
-  console.log('icpn', icon)
   return (
     <Viewport>
       {({ below }) =>
