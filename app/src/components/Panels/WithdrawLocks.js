@@ -43,11 +43,11 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
       <Row>
         <Split>
           <h2>
-            <Text smallcaps>Total locks</Text>
+            <Text smallcaps>Withdrawable locks</Text>
           </h2>
 
           <Text weight={'bold'}>
-            {count.max} Lock{count.max === 1 ? '' : 's'}
+            {count.max} {/*Lock{count.max === 1 ? '' : 's'} */}
           </Text>
         </Split>
         <Split>
