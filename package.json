@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "dependencies": {
-    "@aragon/client": "^1.1.0",
     "@aragon/os": "^4.0.1"
   },
   "devDependencies": {
@@ -12,7 +11,7 @@
     "@aragon/apps-token-manager": "^2.1.0",
     "@aragon/apps-vault": "^4.1.0",
     "@aragon/apps-voting": "^2.1.0",
-    "@aragon/cli": "^6.0.0",
+    "@aragon/cli": "^5.10.0",
     "@aragon/test-helpers": "^1.0.1",
     "@babel/core": "^7.4.4",
     "@babel/polyfill": "^7.4.4",
@@ -39,7 +38,7 @@
   },
   "scripts": {
     "start": "aragon run",
-    "start:template": "npm run start -- --template Template --template-init @ARAGON_ENS --files dist",
+    "start:template": "npm run start -- --template Template --template-init @ARAGON_ENS",
     "start:http": "aragon run --http localhost:8001 --http-served-from ./dist",
     "start:http:template": "npm run start:http -- --template Template --template-init @ARAGON_ENS",
     "build": "cd app && npm run build && cd ..",
