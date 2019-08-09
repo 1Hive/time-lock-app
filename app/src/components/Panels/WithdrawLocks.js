@@ -19,6 +19,8 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
   const refund = reduceTotal(unlocked.slice(0, count.value))
   const inputRef = useRef(null)
 
+  //when panel opens want to focus in the input
+  //when panel closes want to reset lock count state
   useEffect(() => {
     if (panelOpened) inputRef.current.focus()
     else handleCountChange(initialState.value)

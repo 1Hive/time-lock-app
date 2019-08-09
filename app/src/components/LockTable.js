@@ -27,7 +27,7 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
     <>
       <Box>
         <Wrap>
-          <Text>Tokens unlocked:</Text>
+          <Text>Unlocked balance:</Text>
           <Text
             size="large"
             weight="bold"
