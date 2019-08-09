@@ -121,3 +121,25 @@ export function toDecimals(num, decimals, { truncate = true } = {}) {
 export function safeDiv(num, denom) {
   return denom ? num / denom : 0
 }
+
+export function toHours(ms) {
+  return ms / 3600000
+}
+
+/**
+ * Format time to HH:MM:SS
+ *
+ * @param {number} time the time in seconds
+ * @returns {string} formatted time
+ */
+export function formatTime(time) {
+
+  const units = ['h', 'm', 's']
+  const hours = Math.floor(time / 3600)
+  const minutes = Math.floor((time % 3600) / 60)
+  const seconds = (time % 3600) % 60
+
+  return [hours, minutes, seconds].map((elem, index) =>
+    elem > 0 ? `${elem}${units[index]} ` : ''
+  )
+}

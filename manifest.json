@@ -1,6 +1,8 @@
 {
   "name": "Lock",
   "description": "Require users to lock tokens for a configurable period of time in order to forward an intent",
+  "details_url": "/meta/details.md",
+  "source_url": "https://<placeholder-repository-url>",
   "icons": [
     {
       "src": "/meta/icon.png",

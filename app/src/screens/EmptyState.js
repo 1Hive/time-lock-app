@@ -1,19 +1,19 @@
 import React from 'react'
 import styled from 'styled-components'
-import { EmptyStateCard } from '@aragon/ui'
-// import emptyIcon from '../assets/empty-card-icon.svg'
+import { Text, useTheme, Box } from '@aragon/ui'
 
-const EmptyState = ({ onActivate }) => (
-  <Main>
-    <EmptyStateCard
-      // icon={<img src={emptyIcon} alt="" />}
-      title="You have no tokens locked"
-      // text="Add tokens to get started."
-      // actionText="Add token"
-      // onActivate={onActivate}
-    />
-  </Main>
-)
+const EmptyState = () => {
+  const theme = useTheme()
+
+  return (
+    <Box style={{ textAlign: 'center' }}>
+      {/* <BackgroundIcon>
+          <img src={emptyIcon} alt="" height="70x" />
+        </BackgroundIcon> */}
+      <Text>No tokens locked</Text>
+    </Box>
+  )
+}
 
 const Main = styled.div`
   display: flex;
@@ -21,6 +21,13 @@ const Main = styled.div`
   justify-content: center;
   flex-grow: 1;
   padding: 20px 0;
+`
+
+const BackgroundIcon = styled.div`
+  border-radius: 50%;
+  background: linear-gradient(to left, #f9fafc, #f9fafc);
+  padding: 10px;
+  margin: 15px auto;
 `
 
 export default EmptyState

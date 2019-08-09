@@ -3,18 +3,24 @@ import 'regenerator-runtime/runtime'
 import Aragon, { events } from '@aragon/api'
 import { addressesEqual } from './lib/web3-utils'
 import tokenAbi from './abi/token.json'
+import retryEvery from './lib/retry-every'
+import lockSettings from './lib/lock-settings'
 
 const app = new Aragon()
 
-app
-  .call('token')
-  .subscribe(initialize, err =>
-    console.error(`Could not start background script execution due to the contract not loading token: ${err}`)
-  )
+retryEvery(() =>
+  app
+    .call('token')
+    .subscribe(initialize, err =>
+      console.error(
+        `Could not start background script execution due to the contract not loading token: ${err}`
+      )
+    )
+)
 
 async function initialize(tokenAddress) {
   const tokenContract = app.external(tokenAddress, tokenAbi)
-
+  console.log('contract', tokenContract)
   return createStore(tokenContract)
 }
 
@@ -65,13 +71,13 @@ async function createStore(tokenContract) {
 function initializeState(state, tokenContract) {
   return async cachedState => {
     let token = await getTokenData(tokenContract)
-    token && app.indentify(`Lock ${token.symbol}`)
+    token && app.indentify(`Lock ${token.tokenSymbol}`)
 
     return {
       ...state,
+      ...token,
+      ...(await getLockSettings()),
       isSyncing: true,
-      token,
-      lock: await getLockSettings(),
     }
   }
 }
@@ -81,8 +87,10 @@ async function updateConnectedAccount(state, { account }) {
   const locks = []
 
   for (let i = 0; i < lockCount; i++) {
-    let { unlockTime, lockAmount } = await app.call('addressesWithdrawLocks', account, i).toPromise()
-    locks.push({ unlockTime, lockAmount })
+    let { unlockTime, lockAmount } = await app
+      .call('addressesWithdrawLocks', account, i)
+      .toPromise()
+    locks.push({ unlockTime: marshallDate(unlockTime), lockAmount })
   }
 
   return {
@@ -92,17 +100,17 @@ async function updateConnectedAccount(state, { account }) {
   }
 }
 
-async function updateLockDuration({ lock, ...state }, { newLockDuration }) {
+async function updateLockDuration({ settings, ...state }, { newLockDuration }) {
   return {
     ...state,
-    lock: { ...lock, duration: newLockDuration },
+    settings: { ...settings, duration: marshallDate(newLockDuration) },
   }
 }
 
-async function updateLockAmount({ lock, ...state }, { newLockAmount }) {
+async function updateLockAmount({ settings, ...state }, { newLockAmount }) {
   return {
     ...state,
-    lock: { ...lock, amount: newLockAmount },
+    settings: { ...settings, amount: newLockAmount },
   }
 }
 
@@ -114,11 +122,14 @@ async function newLock(state, { lockAddress, unlockTime, lockAmount }) {
 
   return {
     ...state,
-    locks: [...locks, { unlockTime, lockAmount }],
+    locks: [...locks, { unlockTime: marshallDate(unlockTime), lockAmount }],
   }
 }
 
-async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) {
+async function newWithdrawal(
+  state,
+  { withdrawalAddress, withdrawalLockCount }
+) {
   const { account, locks } = state
 
   //skip if no connected account or new withdrawl doesn't correspond to connected account
@@ -139,16 +150,16 @@ async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) 
 async function getTokenData(contract) {
   try {
     //TODO: check for contracts that use bytes32 as symbol() return value (same for name)
-    const [name, symbol, decimals] = await Promise.all([
+    const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       contract.name().toPromise(),
       contract.symbol().toPromise(),
       contract.decimals().toPromise(),
     ])
 
     return {
-      name,
-      symbol,
-      decimals,
+      tokenName,
+      tokenSymbol,
+      tokenDecimals,
     }
   } catch (err) {
     console.error('Error loading token data: ', err)
@@ -157,21 +168,32 @@ async function getTokenData(contract) {
 }
 
 async function getLockSettings() {
-  try {
-    const [duration, amount] = await Promise.all([
-      app.call('lockDuration').toPromise(),
-      app.call('lockAmount').toPromise(),
-    ])
-    return {
-      duration,
-      amount,
-    }
-  } catch (err) {
-    console.error('Error loading lock settings: ', err)
-    return {}
-  }
+  return Promise.all(
+    lockSettings.map(([name, key, type = 'string']) =>
+      app
+        .call(name)
+        .toPromise()
+        .then(val => (type === 'time' ? marshallDate(val) : val))
+        .then(value => ({ [key]: value }))
+    )
+  )
+    .then(settings =>
+      settings.reduce((acc, setting) => ({ ...acc, ...setting }), {})
+    )
+    .catch(err => {
+      console.error('Failed to load lock settings', err)
+      // Return an empty object to try again later
+      return {}
+    })
 }
 
 function getBlockNumber() {
-  return new Promise((resolve, reject) => app.web3Eth('getBlockNumber').subscribe(resolve, reject))
+  return new Promise((resolve, reject) =>
+    app.web3Eth('getBlockNumber').subscribe(resolve, reject)
+  )
+}
+
+function marshallDate(date) {
+  // Adjust for js time (in ms vs s)
+  return parseInt(date, 10) * 1000
 }

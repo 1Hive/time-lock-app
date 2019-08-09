@@ -93,7 +93,7 @@ contract Template is TemplateBase {
         Voting voting = Voting(installApp(dao, VOTING_APP_ID));
 
         MiniMeToken lockToken = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Lock token", 18, "LKT", true);
-        lockToken.generateTokens(root, 100e18);
+        lockToken.generateTokens(root, 300e18);
         lockToken.changeController(root);
 
         MiniMeToken token = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Test token", 18, "TST", true);
@@ -102,7 +102,7 @@ contract Template is TemplateBase {
         // Initialize apps
         vault.initialize();
         finance.initialize(vault, 30 days);
-        lock.initialize(ERC20(lockToken), 30, 20e18);
+        lock.initialize(ERC20(lockToken), 90, 20e18);
         tokenManager.initialize(token, true, 0);
         voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
 
