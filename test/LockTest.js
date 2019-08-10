@@ -4,6 +4,7 @@ const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
 const ExecutionTarget = artifacts.require('ExecutionTarget')
 const Lock = artifacts.require('LockMock')
 const MockErc20 = artifacts.require('TokenMock')
+const Oracle = artifacts.require('Oracle')
 
 import DaoDeployment from './helpers/DaoDeployment'
 import { deployedContract } from './helpers/helpers'
@@ -11,7 +12,7 @@ import { deployedContract } from './helpers/helpers'
 contract('Lock', ([rootAccount, ...accounts]) => {
   let daoDeployment = new DaoDeployment()
   let lockBase, lockForwarder, mockErc20
-  let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE
+  let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE, LOCK_TOKENS_ROLE
 
   const MOCK_TOKEN_BALANCE = 1000
   const INITIAL_LOCK_DURATION = 60 // seconds
@@ -22,6 +23,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
     lockBase = await Lock.new()
     CHANGE_DURATION_ROLE = await lockBase.CHANGE_DURATION_ROLE()
     CHANGE_AMOUNT_ROLE = await lockBase.CHANGE_AMOUNT_ROLE()
+    LOCK_TOKENS_ROLE = await lockBase.LOCK_TOKENS_ROLE()
   })
 
   beforeEach('install lock-app', async () => {
@@ -59,6 +61,8 @@ contract('Lock', ([rootAccount, ...accounts]) => {
     })
 
     it("get's forwarding fee information", async () => {
+      await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
+
       const [actualToken, actualLockAmount] = Object.values(await lockForwarder.forwardFee())
 
       assert.strictEqual(actualToken, mockErc20.address)
@@ -94,6 +98,8 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       let addressLocks = 0
 
       beforeEach('create execution script', async () => {
+        await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
+
         //create script
         executionTarget = await ExecutionTarget.new()
         const action = {
@@ -103,7 +109,6 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         script = encodeCallScript([action])
       })
 
-      //should this test be done separately in say, 3 tests?
       it('forwards action successfully', async () => {
         await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT, {
           from: rootAccount,
@@ -143,11 +148,12 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         let lockCount = 3
 
         beforeEach('Forward actions', async () => {
-          await mockErc20.approve(lockForwarder.address, lockCount * INITIAL_LOCK_AMOUNT, {
-            from: rootAccount,
-          })
-
-          for (let i = 0; i < lockCount; i++) await lockForwarder.forward(script, { from: rootAccount })
+          for (let i = 0; i < lockCount; i++) {
+            await mockErc20.approve(lockForwarder.address, (i + 1) * INITIAL_LOCK_AMOUNT, {
+              from: rootAccount,
+            })
+            await lockForwarder.forward(script, { from: rootAccount })
+          }
         })
 
         it("doesn't withdraw tokens before lock duration has elapsed", async () => {
@@ -187,7 +193,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           const expectedLockCount = 0
 
           //increase time
-          await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
+          await lockForwarder.mockIncreaseTime((INITIAL_LOCK_DURATION * lockCount) + 1)
           await lockForwarder.withdrawTokens()
 
           const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
@@ -256,7 +262,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
   describe('app not initialized', () => {
     it('reverts on forwarding', async () => {
-      await assertRevert(lockForwarder.forward('0x', { from: rootAccount }), 'LOCK_CAN_NOT_FORWARD')
+      await assertRevert(lockForwarder.forward('0x', { from: rootAccount }))
     })
 
     it('reverts on changing duration', async () => {
