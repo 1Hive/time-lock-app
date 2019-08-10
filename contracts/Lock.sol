@@ -17,6 +17,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     bytes32 public constant CHANGE_DURATION_ROLE = keccak256("CHANGE_DURATION_ROLE");
     bytes32 public constant CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
+    bytes32 public constant LOCK_TOKENS_ROLE = keccak256("LOCK_TOKENS_ROLE");
 
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
     string private constant ERROR_CAN_NOT_FORWARD = "LOCK_CAN_NOT_FORWARD";
@@ -90,8 +91,13 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @return Forwarder token address
     * @return Forwarder lock amount
     */
-    function forwardFee() external view returns (address, uint256) {
-        return (address(token), lockAmount);
+    function forwardFee() external view auth(LOCK_TOKENS_ROLE) returns (address, uint256) {
+        (uint256 _griefAmount, ) = getGriefing(msg.sender);
+
+        //add base amount to grief
+        _griefAmount = _griefAmount.add(lockAmount);
+
+        return (address(token), _griefAmount);
     }
 
     /**
@@ -117,23 +123,48 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Locks the required amount of tokens and executes the specified action
     * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
+    *      We check for edge cases where an approve is made and before this function is called, one of msg.sender current locks is unlocked resulting in a different griefing amount.
     * @param _evmCallScript Script to execute
     */
-    function forward(bytes _evmCallScript) public {
+    function forward(bytes _evmCallScript) public  auth(LOCK_TOKENS_ROLE) {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
+        (uint256 griefAmount, uint256 griefDuration) = getGriefing(msg.sender);
+
+        uint256 allowance = token.allowance(msg.sender, address(this));
+        uint256 computedAmount = lockAmount.add(griefAmount);
+
+        uint256 totalAmount = allowance > computedAmount ? allowance : computedAmount;
+        uint256 totalDuration = lockDuration.add(griefDuration);
+
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-        uint256 unlockTime = getTimestamp().add(lockDuration);
-        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(unlockTime, lockAmount));
+        uint256 unlockTime = getTimestamp().add(totalDuration);
+        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(unlockTime, totalAmount));
 
-        require(token.safeTransferFrom(msg.sender, address(this), lockAmount), ERROR_TRANSFER_REVERTED);
+        require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
-        emit NewLock(msg.sender, unlockTime, lockAmount);
+        emit NewLock(msg.sender, unlockTime, totalAmount);
         runScript(_evmCallScript, new bytes(0), new address[](0));
     }
 
     function getWithdrawLocksCount(address _lockAddress) public view returns (uint256) {
         return addressesWithdrawLocks[_lockAddress].length;
+    }
+
+    /**
+    * @notice Get's amount and duration to lock based on the number of current locks sender has
+    */
+    function getGriefing(address _sender) public view returns (uint256, uint256) {
+        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
+
+        uint256 activeLocks = 0;
+        for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocks.length; withdrawLockIndex++) {
+            if (getTimestamp() < addressWithdrawLocks[withdrawLockIndex].unlockTime) {
+                activeLocks += 1;
+            }
+        }
+
+        return (lockAmount.mul(activeLocks), lockDuration.mul(activeLocks));
     }
 
     function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {
