@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import styled from 'styled-components'
 import { useSpring, animated } from 'react-spring'
 import { DataView, Text, Countdown, Box, useTheme } from '@aragon/ui'
@@ -25,16 +25,11 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const totalLocked = reduceTotal(locked)
   return (
     <>
-      <Box>
+      <Box style={totalUnlocked > 0 ? { borderTop: `2px solid ${theme.positive}` } : {}}>
         <Wrap>
           <Text>Unlocked balance:</Text>
-          <Text
-            size="large"
-            weight="bold"
-            color={totalUnlocked > 0 ? String(theme.positive) : ''}
-          >
-            {formatTokenAmount(totalUnlocked, false, tokenDecimals)}{' '}
-            {tokenSymbol}{' '}
+          <Text size="large" weight="bold" color={totalUnlocked > 0 ? String(theme.positive) : ''}>
+            {formatTokenAmount(totalUnlocked, false, tokenDecimals)} {tokenSymbol}{' '}
           </Text>
         </Wrap>
       </Box>
@@ -43,13 +38,7 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
           fields={['Amount', 'Unlocks in']}
           entries={locked.map(l => [l.lockAmount, l.unlockTime])}
           renderEntry={([amount, unlockTime]) => [
-            <Text>
-              {`${formatTokenAmount(
-                amount,
-                false,
-                tokenDecimals
-              )} ${tokenSymbol}`}
-            </Text>,
+            <Text>{`${formatTokenAmount(amount, false, tokenDecimals)} ${tokenSymbol}`}</Text>,
             renderUnlockTime(unlockTime),
           ]}
           mode="table"
