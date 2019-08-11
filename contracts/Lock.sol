@@ -152,7 +152,9 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Get's amount and duration to lock based on the number of current locks sender has
+    * @notice Get's amount and duration penalty based on the number of current locks `_sender` has
+    * @param _sender 
+    * @return amount and duration penalty
     */
     function getGriefing(address _sender) public view returns (uint256, uint256) {
         WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
