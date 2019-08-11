@@ -153,7 +153,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     /**
     * @notice Get's amount and duration penalty based on the number of current locks `_sender` has
-    * @param _sender 
+    * @param _sender account that is going to lock tokens
     * @return amount and duration penalty
     */
     function getGriefing(address _sender) public view returns (uint256, uint256) {
