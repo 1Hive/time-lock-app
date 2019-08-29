@@ -84,12 +84,12 @@ The Lock app is initialized with a `_lockDuration` of 1:30 minutes and a `_lockA
 The app has the permission to create votes, so if you try to mint yourself some tokens from the `tokens` app it will first prompt you to approve the Lock app to transfer 20 LKT tokens to the contract on your behalf.
 Once the forwarding is performed you should be able to see the current lock and a timer indicating how much time until you can re-claim your 20 LKT tokens.
 
-### Reclaiming your tokens
+### Re-claiming your tokens
 
 Once your balance is unlocked you will be able to re-claim your tokens via the withdraw button.
-You will have to input hoy many locks you'll re-claim and they'll be withdrawn on a FIFO bassis (first in first out)
+You will have to input how many locks you'll re-claim and they'll be withdrawn on a FIFO bassis (first in first out)
 
-## How to deploy Redemptions to an organization
+## How to deploy Lock app to an organization
 
 TODO: Deploy lock to rinkeby
 
