@@ -86,18 +86,17 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Tells the forward fee token and amount of the Tollgate app
+    * @notice Tells the forward fee token and amount of the Lock app
     * @dev IFeeForwarder interface conformance
     * @return Forwarder token address
     * @return Forwarder lock amount
     */
-    function forwardFee() external view auth(LOCK_TOKENS_ROLE) returns (address, uint256) {
+    function forwardFee() external view returns (address, uint256) {
         (uint256 _griefAmount, ) = getGriefing(msg.sender);
 
-        //add base amount to grief
-        _griefAmount = _griefAmount.add(lockAmount);
+        uint256 totalLockAmountRequired = _griefAmount.add(lockAmount);
 
-        return (address(token), _griefAmount);
+        return (address(token), totalLockAmountRequired);
     }
 
     /**
@@ -114,10 +113,8 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @dev IForwarder interface conformance. It assumes the sender can always forward actions through the Tollgate app.
     * @return True if contract is allowed to transfer at least lockAmount tokens from _sender to itself
     */
-    function canForward(address, bytes) public view returns (bool) {
-        // bool allowanceAvailable = token.allowance(_sender, address(this)) >= lockAmount;
-        // return allowanceAvailable;
-        return hasInitialized();
+    function canForward(address _sender, bytes) public view returns (bool) {
+        return canPerform(_sender, LOCK_TOKENS_ROLE, arr());
     }
 
     /**
@@ -126,7 +123,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     *      We check for edge cases where an approve is made and before this function is called, one of msg.sender current locks is unlocked resulting in a different griefing amount.
     * @param _evmCallScript Script to execute
     */
-    function forward(bytes _evmCallScript) public  auth(LOCK_TOKENS_ROLE) {
+    function forward(bytes _evmCallScript) public {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
         (uint256 griefAmount, uint256 griefDuration) = getGriefing(msg.sender);
@@ -154,7 +151,8 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Get's amount and duration penalty based on the number of current locks `_sender` has
     * @param _sender account that is going to lock tokens
-    * @return amount and duration penalty
+    * @return amount penalty
+    * @return duration penalty
     */
     function getGriefing(address _sender) public view returns (uint256, uint256) {
         WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
