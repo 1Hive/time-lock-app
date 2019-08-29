@@ -16,7 +16,6 @@ import "@aragon/os/contracts/apm/Repo.sol";
 import "@aragon/os/contracts/lib/ens/ENS.sol";
 import "@aragon/os/contracts/lib/ens/PublicResolver.sol";
 import "@aragon/os/contracts/apm/APMNamehash.sol";
-import "@aragon/apps-finance/contracts/Finance.sol";
 import "@aragon/apps-voting/contracts/Voting.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
@@ -70,7 +69,6 @@ contract Template is TemplateBase {
 
     bytes32 internal VAULT_APP_ID = apmNamehash("vault");
     bytes32 internal VOTING_APP_ID = apmNamehash("voting");
-    bytes32 internal FINANCE_APP_ID = apmNamehash("finance");
     bytes32 internal LOCK_APP_ID = keccak256(abi.encodePacked(apmNamehash("open"), keccak256("lock")));
     bytes32 internal TOKEN_MANAGER_APP_ID = apmNamehash("token-manager");
 
@@ -86,7 +84,6 @@ contract Template is TemplateBase {
         ACL acl = ACL(dao.acl());
         acl.createPermission(this, dao, dao.APP_MANAGER_ROLE(), this);
 
-        Finance finance = Finance(installApp(dao, FINANCE_APP_ID));
         Lock lock = Lock(installApp(dao, LOCK_APP_ID));
         TokenManager tokenManager = TokenManager(installApp(dao, TOKEN_MANAGER_APP_ID));
         Vault vault = Vault(installDefaultApp(dao, VAULT_APP_ID));
@@ -101,7 +98,6 @@ contract Template is TemplateBase {
 
         // Initialize apps
         vault.initialize();
-        finance.initialize(vault, 30 days);
         lock.initialize(ERC20(lockToken), 90, 20e18);
         tokenManager.initialize(token, true, 0);
         voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
@@ -111,11 +107,6 @@ contract Template is TemplateBase {
         tokenManager.mint(root, 10e18); // Give ten tokens to root
 
         acl.createPermission(lock, voting, voting.CREATE_VOTES_ROLE(), voting);
-
-        acl.createPermission(finance, vault, vault.TRANSFER_ROLE(), voting);
-        acl.createPermission(voting, finance, finance.CREATE_PAYMENTS_ROLE(), voting);
-        acl.createPermission(voting, finance, finance.EXECUTE_PAYMENTS_ROLE(), voting);
-        acl.createPermission(voting, finance, finance.MANAGE_PAYMENTS_ROLE(), voting);
 
         acl.createPermission(root, lock, lock.CHANGE_DURATION_ROLE(), voting);
         acl.createPermission(root, lock, lock.CHANGE_AMOUNT_ROLE(), voting);
