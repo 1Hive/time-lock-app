@@ -125,8 +125,8 @@ contract Template is TemplateBase {
         acl.createPermission(root, lock, lock.CHANGE_DURATION_ROLE(), voting);
         acl.createPermission(root, lock, lock.CHANGE_AMOUNT_ROLE(), voting);
 
-        acl.createPermission(this,lock,lock.LOCK_TOKENS_ROLE(), this);
-        // creating param for dissent oracle (the idea here is when an entity tries to mint tokens, it first checks with the oracle)
+        acl.createPermission(this, lock, lock.LOCK_TOKENS_ROLE(), this);
+        // creating param for Token Manager Membership Oracle (the idea here is when an entity tries to mint tokens, it first checks with the oracle)
         setOracle(acl, ANY_ENTITY, lock, lock.LOCK_TOKENS_ROLE(), oracle);
 
         // Clean up permissions
@@ -151,7 +151,7 @@ contract Template is TemplateBase {
 
     function setOracle(ACL acl, address who, address where, bytes32 what, address oracle) internal {
         uint256[] memory params = new uint256[](1);
-        params[0] = paramsTo256(ORACLE_PARAM_ID,uint8(Op.EQ),uint240(oracle));
+        params[0] = paramsTo256(ORACLE_PARAM_ID, uint8(Op.EQ), uint240(oracle));
         acl.grantPermissionP(who, where, what, params);
     }
 

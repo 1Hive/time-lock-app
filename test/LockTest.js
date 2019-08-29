@@ -193,7 +193,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           const expectedLockCount = 0
 
           //increase time
-          await lockForwarder.mockIncreaseTime((INITIAL_LOCK_DURATION * lockCount) + 1)
+          await lockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION * lockCount + 1)
           await lockForwarder.withdrawTokens()
 
           const actualLockCount = await lockForwarder.getWithdrawLocksCount(rootAccount)
@@ -262,15 +262,15 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
   describe('app not initialized', () => {
     it('reverts on forwarding', async () => {
-      await assertRevert(lockForwarder.forward('0x', { from: rootAccount }))
+      await assertRevert(lockForwarder.forward('0x', { from: rootAccount }), 'APP_AUTH_FAILED')
     })
 
     it('reverts on changing duration', async () => {
-      await assertRevert(lockForwarder.changeLockDuration(20))
+      await assertRevert(lockForwarder.changeLockDuration(20), 'APP_AUTH_FAILED')
     })
 
     it('reverts on changing amount', async () => {
-      await assertRevert(lockForwarder.changeLockAmount(10))
+      await assertRevert(lockForwarder.changeLockAmount(10), 'APP_AUTH_FAILED')
     })
 
     it('reverts on withdrawing tokens', async () => {
