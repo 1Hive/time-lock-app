@@ -67,7 +67,7 @@ npm run start:template
 
 If everything is working correctly, your new DAO will be deployed and your browser will open http://localhost:3000/#/YOUR-DAO-ADDRESS. It should look something like this:
 
-![newly deployed dao with Lock app](add dao screenshot)
+![newly deployed dao with Lock app](https://imgur.com/prqaPXa)
 
 You will also see the configuration for your local deployment in the terminal. It should look something like this:
 
