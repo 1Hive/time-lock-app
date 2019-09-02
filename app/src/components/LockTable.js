@@ -25,43 +25,37 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const totalLocked = reduceTotal(locked)
   return (
     <>
-      <Box>
+      <BoxPad>
         <Wrap>
           <Text>Unlocked balance:</Text>
-          <Text
-            size="large"
-            weight="bold"
-            color={totalUnlocked > 0 ? String(theme.positive) : ''}
-          >
-            {formatTokenAmount(totalUnlocked, false, tokenDecimals)}{' '}
-            {tokenSymbol}{' '}
+          <Text size="large" weight="bold" color={totalUnlocked > 0 ? String(theme.positive) : ''}>
+            {formatTokenAmount(totalUnlocked, false, tokenDecimals)} {tokenSymbol}{' '}
           </Text>
         </Wrap>
-      </Box>
+      </BoxPad>
       {locked.length > 0 ? (
         <DataView
           fields={['Amount', 'Unlocks in']}
           entries={locked.map(l => [l.lockAmount, l.unlockTime])}
           renderEntry={([amount, unlockTime]) => [
-            <Text>
-              {`${formatTokenAmount(
-                amount,
-                false,
-                tokenDecimals
-              )} ${tokenSymbol}`}
-            </Text>,
+            <Text>{`${formatTokenAmount(amount, false, tokenDecimals)} ${tokenSymbol}`}</Text>,
             renderUnlockTime(unlockTime),
           ]}
           mode="table"
           entriesPerPage={PAGINATION}
-          // onSelectEntries={selected => console.log('selected', selected)}
         />
       ) : (
-        <EmptyState>No current tokens locked</EmptyState>
+        <EmptyState />
       )}
     </>
   )
 }
+
+const BoxPad = styled(Box)`
+  > div {
+    padding: 20px;
+  }
+`
 
 const Wrap = styled.div`
   display: flex;

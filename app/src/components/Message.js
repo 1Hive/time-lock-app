@@ -8,7 +8,7 @@ const Message = styled.div`
 
 export const InfoMessage = ({ title, text }) => {
   return (
-    <div style={{ marginBottom: '1rem' }}>
+    <div style={{ margin: '1rem 0' }}>
       <Info.Action title={title} mode="info">
         {text}
       </Info.Action>
