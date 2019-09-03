@@ -8,8 +8,6 @@ const MockErc20 = artifacts.require('TokenMock')
 import DaoDeployment from './helpers/DaoDeployment'
 import { deployedContract } from './helpers/helpers'
 
-const bigExp = (x, y) => new BN(x).mul(new BN(10).pow(new BN(y)))
-
 contract('Lock', ([rootAccount, ...accounts]) => {
   let daoDeployment = new DaoDeployment()
   let lockBase, lockForwarder, mockErc20
