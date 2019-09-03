@@ -1,28 +1,32 @@
 const { assertRevert } = require('./helpers/helpers')
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
-
+const BN = require('bn.js')
 const ExecutionTarget = artifacts.require('ExecutionTarget')
 const Lock = artifacts.require('LockMock')
 const MockErc20 = artifacts.require('TokenMock')
-const Oracle = artifacts.require('Oracle')
 
 import DaoDeployment from './helpers/DaoDeployment'
 import { deployedContract } from './helpers/helpers'
 
+const bigExp = (x, y) => new BN(x).mul(new BN(10).pow(new BN(y)))
+
 contract('Lock', ([rootAccount, ...accounts]) => {
   let daoDeployment = new DaoDeployment()
   let lockBase, lockForwarder, mockErc20
-  let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE, LOCK_TOKENS_ROLE
+  let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE, LOCK_TOKENS_ROLE, CHANGE_GRIEFING_ROLE
 
   const MOCK_TOKEN_BALANCE = 1000
   const INITIAL_LOCK_DURATION = 60 // seconds
   const INITIAL_LOCK_AMOUNT = 10
+  const WHOLE_GRIEFING = 100
+  const INITIAL_GRIEFING_FACTOR = 50 // 50%
 
   before('deploy DAO', async () => {
     await daoDeployment.deployBefore()
     lockBase = await Lock.new()
     CHANGE_DURATION_ROLE = await lockBase.CHANGE_DURATION_ROLE()
     CHANGE_AMOUNT_ROLE = await lockBase.CHANGE_AMOUNT_ROLE()
+    CHANGE_GRIEFING_ROLE = await lockBase.CHANGE_GRIEFING_ROLE()
     LOCK_TOKENS_ROLE = await lockBase.LOCK_TOKENS_ROLE()
   })
 
@@ -37,36 +41,39 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
   describe('initialize(address _token, uint256 _lockDuration, uint256 _lockAmount)', () => {
     beforeEach('initialize lock-app', async () => {
-      await lockForwarder.initialize(mockErc20.address, INITIAL_LOCK_DURATION, INITIAL_LOCK_AMOUNT)
+      await lockForwarder.initialize(
+        mockErc20.address,
+        INITIAL_LOCK_DURATION,
+        INITIAL_LOCK_AMOUNT,
+        INITIAL_GRIEFING_FACTOR
+      )
     })
 
     it('sets variables as expected', async () => {
       const actualToken = await lockForwarder.token()
       const actualLockDuration = await lockForwarder.lockDuration()
       const actualLockAmount = await lockForwarder.lockAmount()
+      const actualGriefingFactor = await lockForwarder.griefingFactor()
       const hasInitialized = await lockForwarder.hasInitialized()
 
       assert.strictEqual(actualToken, mockErc20.address)
       assert.equal(actualLockDuration, INITIAL_LOCK_DURATION)
       assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
+      assert.equal(actualGriefingFactor, INITIAL_GRIEFING_FACTOR)
       assert.isTrue(hasInitialized)
     })
 
-    it('checks it is forwarder', async () => {
+    it('checks it is a forwarder', async () => {
       assert.isTrue(await lockForwarder.isForwarder())
     })
 
-    it('can forward', async () => {
+    it('checks account can forward actions', async () => {
+      await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
       assert.isTrue(await lockForwarder.canForward(rootAccount, '0x'))
     })
 
-    it("get's forwarding fee information", async () => {
-      await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
-
-      const [actualToken, actualLockAmount] = Object.values(await lockForwarder.forwardFee())
-
-      assert.strictEqual(actualToken, mockErc20.address)
-      assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
+    it('cannot forward if account not permitted to lock tokens ', async () => {
+      assert.isFalse(await lockForwarder.canForward(rootAccount, '0x'))
     })
 
     describe('changeLockDuration(uint256 _lockDuration)', () => {
@@ -90,6 +97,114 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
         const actualLockAmount = await lockForwarder.lockAmount()
         assert.equal(actualLockAmount, expectedLockAmount)
+      })
+    })
+
+    describe('changeGriefingFactor(uint256 _griefingFactor)', () => {
+      it('sets a new griefing factor', async () => {
+        await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, CHANGE_GRIEFING_ROLE, rootAccount)
+        const expectedGriefingFactor = 100
+
+        await lockForwarder.changeGriefingFactor(expectedGriefingFactor)
+
+        const actualGriefingFactor = await lockForwarder.griefingFactor()
+        assert.equal(actualGriefingFactor, expectedGriefingFactor)
+      })
+    })
+
+    describe('forwardFee()', async () => {
+      it("get's forwarding fee information", async () => {
+        const [actualToken, actualLockAmount] = Object.values(await lockForwarder.forwardFee())
+
+        assert.strictEqual(actualToken, mockErc20.address)
+        assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
+      })
+
+      context('account has 1 active lock', async () => {
+        beforeEach(async () => {
+          const executionTarget = await ExecutionTarget.new()
+          const action = {
+            to: executionTarget.address,
+            calldata: executionTarget.contract.methods.execute().encodeABI(),
+          }
+          const script = encodeCallScript([action])
+          await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
+          await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT, {
+            from: rootAccount,
+          })
+          await lockForwarder.forward(script, { from: rootAccount })
+        })
+
+        it('forward fee increases for second lock', async () => {
+          const [_, actualLockAmount] = Object.values(await lockForwarder.forwardFee({ from: rootAccount }))
+          assert.equal(actualLockAmount, 15)
+        })
+
+        it('forward fee increases when increasing griefing factor', async () => {
+          await daoDeployment.acl.createPermission(
+            rootAccount,
+            lockForwarder.address,
+            CHANGE_GRIEFING_ROLE,
+            rootAccount
+          )
+          await lockForwarder.changeGriefingFactor(100)
+          const [_, actualLockAmount] = Object.values(await lockForwarder.forwardFee({ from: rootAccount }))
+
+          assert.equal(actualLockAmount, 20)
+        })
+      })
+    })
+
+    describe('getGriefing(address _sender)', () => {
+      it("get's griefing amount and duration", async () => {
+        const [actualGriefingAmount, actualGriefingDuration] = Object.values(
+          await lockForwarder.getGriefing(rootAccount)
+        )
+
+        assert.equal(actualGriefingAmount, 0)
+        assert.equal(actualGriefingDuration, 0)
+      })
+
+      context('account has 1 active lock', async () => {
+        beforeEach(async () => {
+          const executionTarget = await ExecutionTarget.new()
+          const action = {
+            to: executionTarget.address,
+            calldata: executionTarget.contract.methods.execute().encodeABI(),
+          }
+          const script = encodeCallScript([action])
+          await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
+          await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT, {
+            from: rootAccount,
+          })
+          await lockForwarder.forward(script, { from: rootAccount })
+        })
+
+        it('griefing amount and duration increase for second lock', async () => {
+          const [actualGriefingAmount, actualGriefingDuration] = Object.values(
+            await lockForwarder.getGriefing(rootAccount)
+          )
+
+          assert.equal(actualGriefingAmount, 5)
+          assert.equal(actualGriefingDuration, 30)
+        })
+
+        it('griefing amount and duration increase when increasing griefing factor', async () => {
+          await daoDeployment.acl.createPermission(
+            rootAccount,
+            lockForwarder.address,
+            CHANGE_GRIEFING_ROLE,
+            rootAccount
+          )
+          await lockForwarder.changeGriefingFactor(100)
+
+          const [actualGriefingAmount, actualGriefingDuration] = Object.values(
+            await lockForwarder.getGriefing(rootAccount)
+          )
+
+          assert.equal(actualGriefingAmount, 10)
+          assert.equal(actualGriefingDuration, 60)
+        })
       })
     })
 
@@ -140,16 +255,60 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         assert.equal(actualLockAmount, expectedLockAmount)
       })
 
-      it('cannot forward if sender does not approve lock-app to transfer tokens', async () => {
+      it('cannot forward if sender does not approve lock app to transfer tokens', async () => {
         await assertRevert(lockForwarder.forward(script, { from: rootAccount }), 'LOCK_TRANSFER_REVERTED')
+      })
+
+      context('account has 1 active lock', async () => {
+        beforeEach(async () => {
+          await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT, {
+            from: rootAccount,
+          })
+          await lockForwarder.forward(script, { from: rootAccount })
+        })
+
+        it('lock amount increases for second lock', async () => {
+          const expectedLockAmount = 15
+
+          await mockErc20.approve(lockForwarder.address, expectedLockAmount, {
+            from: rootAccount,
+          })
+          await lockForwarder.forward(script, { from: rootAccount })
+
+          const { lockAmount: actualLockAmount } = await lockForwarder.addressesWithdrawLocks(rootAccount, 1)
+          assert.equal(actualLockAmount, expectedLockAmount)
+        })
+
+        it('lock amount increases when increasing griefing factor', async () => {
+          await daoDeployment.acl.createPermission(
+            rootAccount,
+            lockForwarder.address,
+            CHANGE_GRIEFING_ROLE,
+            rootAccount
+          )
+          await lockForwarder.changeGriefingFactor(100)
+          const expectedLockAmount = 20
+
+          await mockErc20.approve(lockForwarder.address, expectedLockAmount, {
+            from: rootAccount,
+          })
+          await lockForwarder.forward(script, { from: rootAccount })
+
+          const { lockAmount: actualLockAmount } = await lockForwarder.addressesWithdrawLocks(rootAccount, 1)
+          assert.equal(actualLockAmount, expectedLockAmount)
+        })
       })
 
       describe('withdrawTokens()', async () => {
         let lockCount = 3
 
         beforeEach('Forward actions', async () => {
+          let griefing
+          let griefingPct = INITIAL_GRIEFING_FACTOR / WHOLE_GRIEFING
+
           for (let i = 0; i < lockCount; i++) {
-            await mockErc20.approve(lockForwarder.address, (i + 1) * INITIAL_LOCK_AMOUNT, {
+            griefing = i * INITIAL_LOCK_AMOUNT * griefingPct
+            await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT + griefing, {
               from: rootAccount,
             })
             await lockForwarder.forward(script, { from: rootAccount })
@@ -200,7 +359,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           assert.equal(actualLockCount, expectedLockCount)
         })
 
-        describe('changeLockDuration(uint256 _lockDuration)', async () => {
+        describe('change lock duration', async () => {
           beforeEach(async () => {
             await daoDeployment.acl.createPermission(
               rootAccount,
@@ -228,7 +387,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           })
         })
 
-        describe('changeLockAmount(uint256 _lockAmount)', async () => {
+        describe('change lock amount', async () => {
           beforeEach(async () => {
             await daoDeployment.acl.createPermission(
               rootAccount,
@@ -262,7 +421,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
   describe('app not initialized', () => {
     it('reverts on forwarding', async () => {
-      await assertRevert(lockForwarder.forward('0x', { from: rootAccount }), 'APP_AUTH_FAILED')
+      await assertRevert(lockForwarder.forward('0x', { from: rootAccount }), 'LOCK_CAN_NOT_FORWARD')
     })
 
     it('reverts on changing duration', async () => {
@@ -271,6 +430,10 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
     it('reverts on changing amount', async () => {
       await assertRevert(lockForwarder.changeLockAmount(10), 'APP_AUTH_FAILED')
+    })
+
+    it('reverts on changing griefing factor', async () => {
+      await assertRevert(lockForwarder.changeGriefingFactor(10), 'APP_AUTH_FAILED')
     })
 
     it('reverts on withdrawing tokens', async () => {
