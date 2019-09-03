@@ -101,19 +101,19 @@ contract Template is TemplateBase {
         lockToken.generateTokens(root, 300e18);
         lockToken.changeController(root);
 
-        MiniMeToken token = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Test token", 18, "TST", true);
+        MiniMeToken token = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Bee Token", 18, "BEE", true);
         token.changeController(tokenManager);
 
         // Initialize apps
         vault.initialize();
         finance.initialize(vault, 30 days);
-        lock.initialize(ERC20(lockToken), 90, 20e18);
+        lock.initialize(ERC20(lockToken), 90, 20e18, 100);
         tokenManager.initialize(token, true, 0);
         voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
 
         acl.createPermission(this, tokenManager, tokenManager.MINT_ROLE(), this);
         acl.createPermission(voting, tokenManager, tokenManager.BURN_ROLE(), root);
-        tokenManager.mint(root, 10e18); // Give ten tokens to root
+        tokenManager.mint(root, 1e18); // Give one membership token to root
 
         acl.createPermission(lock, voting, voting.CREATE_VOTES_ROLE(), voting);
 

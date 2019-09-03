@@ -17,6 +17,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     bytes32 public constant CHANGE_DURATION_ROLE = keccak256("CHANGE_DURATION_ROLE");
     bytes32 public constant CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
+    bytes32 public constant CHANGE_GRIEFING_ROLE = keccak256("CHANGE_GRIEFING_ROLE");
     bytes32 public constant LOCK_TOKENS_ROLE = keccak256("LOCK_TOKENS_ROLE");
 
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
@@ -26,6 +27,9 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     ERC20 public token;
     uint256 public lockDuration;
     uint256 public lockAmount;
+    uint256 public griefingFactor;
+
+    uint256 private constant WHOLE_GRIEFING = 100;
 
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
@@ -42,11 +46,13 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @param _token The token which will be locked when forwarding actions
     * @param _lockDuration The duration tokens will be locked before being able to be withdrawn
     * @param _lockAmount The amount of the token that is locked for each forwarded action
+    * @param _griefingFactor The griefing pct will be calculated as `griefingFactor / WHOLE_GRIEFING`
     */
-    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount) external onlyInit {
+    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _griefingFactor) external onlyInit {
         token = ERC20(_token);
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
+        griefingFactor = _griefingFactor;
 
         initialized();
     }
@@ -70,6 +76,15 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
+    * @notice Change griefing factor to `_griefingFactor`
+    * @param _griefingFactor The new griefing factor
+    */
+    function changeGriefingFactor(uint256 _griefingFactor) external auth(CHANGE_GRIEFING_ROLE) {
+        griefingFactor = _griefingFactor;
+        emit ChangeLockAmount(griefingFactor);
+    }
+
+    /**
     * @notice Withdraw all withdrawable tokens
     */
     function withdrawTokens() external {
@@ -88,19 +103,21 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Tells the forward fee token and amount of the Lock app
     * @dev IFeeForwarder interface conformance
+    *      Note that the Lock app has to be the frist forwarder in the transaction path in order for the griefing mechanism to work
     * @return Forwarder token address
     * @return Forwarder lock amount
     */
     function forwardFee() external view returns (address, uint256) {
+        require(msg.sender != address(0), "ADDRESS_ZERO");
         (uint256 _griefAmount, ) = getGriefing(msg.sender);
 
-        uint256 totalLockAmountRequired = _griefAmount.add(lockAmount);
+        uint256 totalLockAmountRequired = lockAmount.add(_griefAmount);
 
         return (address(token), totalLockAmountRequired);
     }
 
     /**
-    * @notice Tells whether the Tollgate app is a forwarder or not
+    * @notice Tells whether the Lock app is a forwarder or not
     * @dev IForwarder interface conformance
     * @return Always true
     */
@@ -110,8 +127,8 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     /**
     * @notice Tells whether the _sender can forward actions or not
-    * @dev IForwarder interface conformance. It assumes the sender can always forward actions through the Tollgate app.
-    * @return True if contract is allowed to transfer at least lockAmount tokens from _sender to itself
+    * @dev IForwarder interface conformance
+    * @return True if _sender has LOCK_TOKENS_ROLE role
     */
     function canForward(address _sender, bytes) public view returns (bool) {
         return canPerform(_sender, LOCK_TOKENS_ROLE, arr());
@@ -120,7 +137,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Locks the required amount of tokens and executes the specified action
     * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
-    *      We check for edge cases where an approve is made and before this function is called, one of msg.sender current locks is unlocked resulting in a different griefing amount.
+    *      Note that the Lock app has to be the frist forwarder in the transaction path in order for the griefing mechanism to work
     * @param _evmCallScript Script to execute
     */
     function forward(bytes _evmCallScript) public {
@@ -128,10 +145,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
         (uint256 griefAmount, uint256 griefDuration) = getGriefing(msg.sender);
 
-        uint256 allowance = token.allowance(msg.sender, address(this));
-        uint256 computedAmount = lockAmount.add(griefAmount);
-
-        uint256 totalAmount = allowance > computedAmount ? allowance : computedAmount;
+        uint256 totalAmount = lockAmount.add(griefAmount);
         uint256 totalDuration = lockDuration.add(griefDuration);
 
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
@@ -164,7 +178,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
             }
         }
 
-        return (lockAmount.mul(activeLocks), lockDuration.mul(activeLocks));
+        return (lockAmount.mul(activeLocks).mul(griefingFactor).div(WHOLE_GRIEFING), lockDuration.mul(activeLocks).mul(griefingFactor).div(WHOLE_GRIEFING));
     }
 
     function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {

@@ -14,7 +14,7 @@ contract Oracle is AragonApp, IACLOracle {
     * @notice ACLOracle
     * @dev IACLOracle interface conformance
     */
-    function canPerform(address , address, bytes32, uint256[]) external view returns (bool) {
+    function canPerform(address, address, bytes32, uint256[]) external view returns (bool) {
         return true;
     }
 }
