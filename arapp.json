@@ -9,6 +9,16 @@
       "name": "Change amount role",
       "id": "CHANGE_AMOUNT_ROLE",
       "params": []
+    },
+    {
+      "name": "Change griefing factor role",
+      "id": "CHANGE_GRIEFING_ROLE",
+      "params": []
+    },
+    {
+      "name": "Lock tokens role",
+      "id": "LOCK_TOKENS_ROLE",
+      "params": []
     }
   ],
   "environments": {
