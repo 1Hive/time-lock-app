@@ -42,10 +42,9 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
           ]}
           mode="table"
           entriesPerPage={PAGINATION}
-          // onSelectEntries={selected => console.log('selected', selected)}
         />
       ) : (
-        <EmptyState>No current tokens locked</EmptyState>
+        <EmptyState />
       )}
     </>
   )

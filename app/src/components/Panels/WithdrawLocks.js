@@ -10,10 +10,7 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
   const { tokenSymbol, tokenDecimals } = useAppState()
   const unlocked = locks.filter(l => l.unlocked)
 
-  const initialState = useMemo(() => ({ value: '0', max: unlocked.length }), [
-    unlocked.length,
-  ])
-
+  const initialState = useMemo(() => ({ value: '0', max: unlocked.length }), [unlocked.length])
   const [count, handleCountChange] = useCount(initialState, unlocked)
 
   const refund = reduceTotal(unlocked.slice(0, count.value))
@@ -24,7 +21,7 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
   useEffect(() => {
     if (panelOpened) inputRef.current.focus()
     else handleCountChange(initialState.value)
-  }, [panelOpened, initialState])
+  }, [panelOpened])
 
   const handleFormSubmit = useCallback(
     e => {
@@ -38,9 +35,9 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
     <form onSubmit={handleFormSubmit}>
       <InfoMessage
         title={'Lock action'}
-        text={`This action will withdraw the ${
-          count.value == 1 ? '' : count.value
-        } oldest lock${count.value == 1 ? '' : 's'}`}
+        text={`This action will withdraw the ${count.value == 1 ? '' : count.value} oldest lock${
+          count.value == 1 ? '' : 's'
+        }`}
       />
       <Row>
         <Split>
@@ -48,27 +45,19 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
             <Text smallcaps>Withdrawable locks</Text>
           </h2>
 
-          <Text weight={'bold'}>
-            {count.max} {/*Lock{count.max === 1 ? '' : 's'} */}
-          </Text>
+          <Text weight={'bold'}>{count.max}</Text>
         </Split>
         <Split>
           <h2>
             <Text smallcaps>Tokens back</Text>
           </h2>
 
-          <Text weight={'bold'}>
-            {`${formatTokenAmount(
-              refund,
-              false,
-              tokenDecimals
-            )} ${tokenSymbol}`}{' '}
-          </Text>
+          <Text weight={'bold'}>{`${formatTokenAmount(refund, false, tokenDecimals)} ${tokenSymbol}`} </Text>
         </Split>
       </Row>
       <Row>
-        <Field label="Withdraw" style={{ width: '100%' }}>
-          <Input
+        <Field label="Withdraw" style={{ width: '100%', marginBottom: '20px' }}>
+          <TextInput
             name="count"
             wide={true}
             value={count.value}
@@ -78,6 +67,7 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
             onChange={handleCountChange}
             required
             ref={inputRef}
+            css={{ borderTopRightRadius: '0', borderBottomRightRadius: '0', borderRight: '0' }}
           />
         </Field>
         <MaxInput onClick={() => handleCountChange(count.max)}>Max</MaxInput>
@@ -94,7 +84,7 @@ function useCount(init, unlocked) {
 
   useEffect(() => {
     setCount({ ...count, max: unlocked.length })
-  }, [unlocked])
+  }, [unlocked.length])
 
   //we use only one function for all cases the count can change
   const handleCountChange = useCallback(
@@ -122,12 +112,6 @@ const Split = styled.div`
   &:first-child {
     border-right: 2px solid ${theme.accent};
   }
-`
-
-const Input = styled(TextInput.Number)`
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-right: 0;
 `
 
 const MaxInput = styled.span`
