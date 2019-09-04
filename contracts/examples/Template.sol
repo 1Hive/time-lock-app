@@ -124,9 +124,10 @@ contract Template is TemplateBase {
 
         acl.createPermission(root, lock, lock.CHANGE_DURATION_ROLE(), voting);
         acl.createPermission(root, lock, lock.CHANGE_AMOUNT_ROLE(), voting);
+        acl.createPermission(root, lock, lock.CHANGE_GRIEFING_ROLE(), voting);
 
         acl.createPermission(this, lock, lock.LOCK_TOKENS_ROLE(), this);
-        // creating param for Token Manager Membership Oracle (the idea here is when an entity tries to mint tokens, it first checks with the oracle)
+        // creating param for Token balance Oracle
         setOracle(acl, ANY_ENTITY, lock, lock.LOCK_TOKENS_ROLE(), oracle);
 
         // Clean up permissions
