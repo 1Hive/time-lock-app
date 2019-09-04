@@ -38,6 +38,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
+    event ChangeGriefingFactor(uint256 newGriefingFactor);
     event NewLock(address lockAddress, uint256 unlockTime, uint256 lockAmount);
     event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 
@@ -81,7 +82,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     */
     function changeGriefingFactor(uint256 _griefingFactor) external auth(CHANGE_GRIEFING_ROLE) {
         griefingFactor = _griefingFactor;
-        emit ChangeLockAmount(griefingFactor);
+        emit ChangeGriefingFactor(griefingFactor);
     }
 
     /**
