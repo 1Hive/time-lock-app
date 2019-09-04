@@ -20,8 +20,8 @@ import "@aragon/apps-voting/contracts/Voting.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
+import "./Oracle.sol";
 import "../Lock.sol";
-
 
 contract TemplateBase is APMNamehash {
     ENS public ens;
@@ -66,11 +66,15 @@ contract TemplateBase is APMNamehash {
 contract Template is TemplateBase {
 
     uint64 constant PCT = 10 ** 16;
+    address constant ANY_ENTITY = address(-1);
 
-    bytes32 internal VAULT_APP_ID = apmNamehash("vault");
-    bytes32 internal VOTING_APP_ID = apmNamehash("voting");
+    uint8 constant ORACLE_PARAM_ID = 203;
+    enum Op { NONE, EQ, NEQ, GT, LT, GTE, LTE, RET, NOT, AND, OR, XOR, IF_ELSE } // op types
+
     bytes32 internal LOCK_APP_ID = keccak256(abi.encodePacked(apmNamehash("open"), keccak256("lock")));
     bytes32 internal TOKEN_MANAGER_APP_ID = apmNamehash("token-manager");
+    bytes32 internal VAULT_APP_ID = apmNamehash("vault");
+    bytes32 internal VOTING_APP_ID = apmNamehash("voting");
 
     MiniMeTokenFactory tokenFactory;
 
@@ -85,6 +89,7 @@ contract Template is TemplateBase {
         acl.createPermission(this, dao, dao.APP_MANAGER_ROLE(), this);
 
         Lock lock = Lock(installApp(dao, LOCK_APP_ID));
+        Oracle oracle = new Oracle();
         TokenManager tokenManager = TokenManager(installApp(dao, TOKEN_MANAGER_APP_ID));
         Vault vault = Vault(installDefaultApp(dao, VAULT_APP_ID));
         Voting voting = Voting(installApp(dao, VOTING_APP_ID));
@@ -93,23 +98,28 @@ contract Template is TemplateBase {
         lockToken.generateTokens(root, 300e18);
         lockToken.changeController(root);
 
-        MiniMeToken token = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Test token", 18, "TST", true);
+        MiniMeToken token = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Bee Token", 18, "BEE", true);
         token.changeController(tokenManager);
 
         // Initialize apps
         vault.initialize();
-        lock.initialize(ERC20(lockToken), 90, 20e18);
+        lock.initialize(ERC20(lockToken), 90, 20e18, 100);
         tokenManager.initialize(token, true, 0);
         voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
 
         acl.createPermission(this, tokenManager, tokenManager.MINT_ROLE(), this);
         acl.createPermission(voting, tokenManager, tokenManager.BURN_ROLE(), root);
-        tokenManager.mint(root, 10e18); // Give ten tokens to root
+        tokenManager.mint(root, 1e18); // Give one membership token to root
 
         acl.createPermission(lock, voting, voting.CREATE_VOTES_ROLE(), voting);
 
         acl.createPermission(root, lock, lock.CHANGE_DURATION_ROLE(), voting);
         acl.createPermission(root, lock, lock.CHANGE_AMOUNT_ROLE(), voting);
+        acl.createPermission(root, lock, lock.CHANGE_GRIEFING_ROLE(), voting);
+
+        acl.createPermission(this, lock, lock.LOCK_TOKENS_ROLE(), this);
+        // creating param for Token balance Oracle
+        setOracle(acl, ANY_ENTITY, lock, lock.LOCK_TOKENS_ROLE(), oracle);
 
         // Clean up permissions
         acl.grantPermission(root, dao, dao.APP_MANAGER_ROLE());
@@ -124,7 +134,20 @@ contract Template is TemplateBase {
         acl.revokePermission(this, tokenManager, tokenManager.MINT_ROLE());
         acl.setPermissionManager(root, tokenManager, tokenManager.MINT_ROLE());
 
+        acl.revokePermission(this, lock, lock.LOCK_TOKENS_ROLE());
+        acl.setPermissionManager(root, lock, lock.LOCK_TOKENS_ROLE());
+
         emit DeployInstance(dao);
 
+    }
+
+    function setOracle(ACL acl, address who, address where, bytes32 what, address oracle) internal {
+        uint256[] memory params = new uint256[](1);
+        params[0] = paramsTo256(ORACLE_PARAM_ID, uint8(Op.EQ), uint240(oracle));
+        acl.grantPermissionP(who, where, what, params);
+    }
+
+    function paramsTo256(uint8 id,uint8 op, uint240 value) internal returns (uint256) {
+        return (uint256(id) << 248) + (uint256(op) << 240) + value;
     }
 }

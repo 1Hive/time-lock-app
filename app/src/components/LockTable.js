@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import styled from 'styled-components'
-import { useSpring, animated } from 'react-spring'
 import { DataView, Text, Countdown, Box, useTheme } from '@aragon/ui'
 import { formatTokenAmount, toHours } from '../lib/math-utils'
 import { reduceTotal } from '../lib/lock-utils'
@@ -25,7 +24,7 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const totalLocked = reduceTotal(locked)
   return (
     <>
-      <BoxPad>
+      <BoxPad style={totalUnlocked > 0 ? { borderLeft: `3px solid ${theme.positive}` } : {}}>
         <Wrap>
           <Text>Unlocked balance:</Text>
           <Text size="large" weight="bold" color={totalUnlocked > 0 ? String(theme.positive) : ''}>
