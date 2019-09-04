@@ -1,6 +1,5 @@
 const { assertRevert } = require('./helpers/helpers')
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
-const BN = require('bn.js')
 const ExecutionTarget = artifacts.require('ExecutionTarget')
 const Lock = artifacts.require('LockMock')
 const MockErc20 = artifacts.require('TokenMock')

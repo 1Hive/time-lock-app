@@ -103,12 +103,11 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Tells the forward fee token and amount of the Lock app
     * @dev IFeeForwarder interface conformance
-    *      Note that the Lock app has to be the frist forwarder in the transaction path in order for the griefing mechanism to work
+    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
     * @return Forwarder token address
     * @return Forwarder lock amount
     */
     function forwardFee() external view returns (address, uint256) {
-        require(msg.sender != address(0), "ADDRESS_ZERO");
         (uint256 _griefAmount, ) = getGriefing(msg.sender);
 
         uint256 totalLockAmountRequired = lockAmount.add(_griefAmount);
@@ -137,7 +136,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Locks the required amount of tokens and executes the specified action
     * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
-    *      Note that the Lock app has to be the frist forwarder in the transaction path in order for the griefing mechanism to work
+    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
     * @param _evmCallScript Script to execute
     */
     function forward(bytes _evmCallScript) public {
