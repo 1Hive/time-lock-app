@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useMemo, useCallback } from 'react'
 import { useAppState, useApi } from '@aragon/api-react'
 
 import { isUnlocked } from '../lib/lock-utils'

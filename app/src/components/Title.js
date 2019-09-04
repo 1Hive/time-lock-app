@@ -1,7 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
 import { useAragonApi, useAppState } from '@aragon/api-react'
-import { font } from '@aragon/ui'
 import MenuButton from './MenuButton/MenuButton'
 
 function Title({ text, after }) {
