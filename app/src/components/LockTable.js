@@ -1,6 +1,5 @@
 import React from 'react'
 import styled from 'styled-components'
-import { useSpring, animated } from 'react-spring'
 import { DataView, Text, Countdown, Box, useTheme } from '@aragon/ui'
 import { formatTokenAmount, toHours } from '../lib/math-utils'
 import { reduceTotal } from '../lib/lock-utils'
@@ -25,14 +24,14 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const totalLocked = reduceTotal(locked)
   return (
     <>
-      <Box style={totalUnlocked > 0 ? { borderTop: `2px solid ${theme.positive}` } : {}}>
+      <BoxPad style={totalUnlocked > 0 ? { borderLeft: `3px solid ${theme.positive}` } : {}}>
         <Wrap>
           <Text>Unlocked balance:</Text>
           <Text size="large" weight="bold" color={totalUnlocked > 0 ? String(theme.positive) : ''}>
             {formatTokenAmount(totalUnlocked, false, tokenDecimals)} {tokenSymbol}{' '}
           </Text>
         </Wrap>
-      </Box>
+      </BoxPad>
       {locked.length > 0 ? (
         <DataView
           fields={['Amount', 'Unlocks in']}
@@ -51,6 +50,12 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
     </>
   )
 }
+
+const BoxPad = styled(Box)`
+  > div {
+    padding: 20px;
+  }
+`
 
 const Wrap = styled.div`
   display: flex;
