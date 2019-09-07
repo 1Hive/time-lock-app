@@ -19,10 +19,12 @@ The lock app is a [forwarder](https://hack.aragon.org/docs/forwarding-intro). By
 
 We do not protect the lock function with a role, so anyone is able to make locks and forward actions. We keep track of when deposits are made and by whom so that users are only able to re-claim deposits that they have made after the duration has elapsed.
 
+We recommend (but do not require) that the lock function is set to an [ACL Oracle](https://hack.aragon.org/docs/acl_IACLOracle) set to the DAO's Token Manager. This is how permissions are set up in our [demo template](https://github.com/1Hive/lock-app/blob/master/contracts/examples/Template.sol#L122). This allows the Oracle to check if the `msg.sender` of a proposal has tokens in the DAO's Token Manager (and thus is a member of the DAO who's qualified to create proposals) before granting the `canForward()` functionality. This means that in order to submit a proposal one must lock tokens, and in order to lock tokens one must be a member of the DAO.
+
 ### Initialization
 
-The deposits app is initialized with a `token`, `_lockDuration`, and `_lockAmount` parameters which determines how long deposits are locked and the amount to deposit.
-The `token` parameter can be set at initialization and not changed. If a change is necessary the user can install a new instance and change permissions in the organization to reflect the change.
+The deposits app is initialized with a `token`, `_lockDuration`, and `_lockAmount` parameters which determines the type of token that can be locked, how long tokens are locked and the amount of tokens to lock.
+At initialization the `token` parameter can be set to an ERC20 token. It cannot be changed. If a change is necessary the user can install a new instance and change permissions in the organization to reflect the change.
 
 ### Roles
 

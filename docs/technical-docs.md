@@ -1,3 +1,6 @@
+# Lock App Technical Docs
+
+This doc goes through `Lock.sol` and `WithdrawLockLib.sol`, explaining every function and it's intended functionality.
 
 <br />
 
