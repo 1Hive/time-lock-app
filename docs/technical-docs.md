@@ -99,6 +99,18 @@ uint256 public griefingFactor;
 uint256 private constant WHOLE_GRIEFING = 100;
 ```
 
+### Griefing Variables Explained
+
+The griefing calculation does not reflect how many tokens should be locked and for how long, but rather the amount and duration to add to the base lockAmount and lockDuration. The `griefingFactor` is a % of the base lock amount and duration values set on the app. This value increases the more locks an account has, making it more and more expensive to create many locks.
+
+When an account wants to submit a proposal they will have to lock `lockAmount` + (`lockAmount` * `totalActiveLocks` * `griefingFactor`/ `WHOLE_GRIEFING`) for a duration of `lockDuration` + (`lockDuration` * `totalActiveLocks` * `griefingFactor` / `WHOLE_GRIEFING`)
+
+e.g. if the `lockAmount` = 20 tokens, `lockDuration` = 6 days and `griefingFactor` is 50%, and the account submitting a proposal has 2 active locks, they will have to lock 40 tokens for 12 days.
+
+The idea behind this is to prevent spamming of proposals.
+
+> Note: this only works if permissions on the lock-app are set so that only members of the DAO `canForward()`. If _anyone_ can submit proposals or DAO members can easily transfer their membership tokens between accounts the griefing mechanism is much less effective.
+
 ### Mapping Addresses to Locks
 ```
 // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in future we must use a mapping instead.
