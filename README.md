@@ -2,6 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/1Hive/lock-app.svg?style=svg)](https://circleci.com/gh/1Hive/lock-app)
 [![Coverage Status](https://coveralls.io/repos/github/1Hive/lock-app/badge.svg?branch=master&service=github)](https://coveralls.io/github/1Hive/lock-app?branch=master&service=github)
+[![Crytic Status](https://crytic.io/api/repositories/bRQyzLe1Qm2ckDlBsGQKLQ/badge.svg?token=4d485d8b-e6c1-4a3b-9f8e-cb3133ee3c4f)](https://crytic.io/1Hive/lock-app)
 
 1Hive's Lock app allows an Aragon organization to require users to lock tokens by sending them to the Lock app for a configurable period of time in order to forward an intent. For example the organization may require users to lock 100 tokens for 1 month before creating a new vote. The user would be able to come back in a month and claim their deposited tokens.
 
