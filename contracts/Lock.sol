@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "@aragon/os/contracts/apps/AragonApp.sol";
 import "@aragon/os/contracts/common/IForwarder.sol";
 import "@aragon/os/contracts/common/IForwarderFee.sol";
+import "@aragon/os/contracts/common/EtherTokenConstant.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
@@ -24,7 +25,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     string private constant ERROR_CAN_NOT_FORWARD = "LOCK_CAN_NOT_FORWARD";
     string private constant ERROR_TRANSFER_REVERTED = "LOCK_TRANSFER_REVERTED";
 
-    ERC20 public token;
+    uint256 public token;
     uint256 public lockDuration;
     uint256 public lockAmount;
     uint256 public griefingFactor;
@@ -49,7 +50,11 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @param _griefingFactor The griefing pct will be calculated as `griefingFactor / WHOLE_GRIEFING`
     */
     function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _griefingFactor) external onlyInit {
-        token = ERC20(_token);
+				if (_token == ETH) {
+					token = _token
+				} else {
+					token = ERC20(_token)
+				};
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
         griefingFactor = _griefingFactor;
