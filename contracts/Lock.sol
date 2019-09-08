@@ -28,8 +28,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     uint256 public lockDuration;
     uint256 public lockAmount;
     uint256 public griefingFactor;
-
-    uint256 private constant WHOLE_GRIEFING = 100;
+    uint256 private constant WHOLE_GRIEFING;
 
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
@@ -48,11 +47,12 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @param _lockAmount The amount of the token that is locked for each forwarded action
     * @param _griefingFactor The griefing pct will be calculated as `griefingFactor / WHOLE_GRIEFING`
     */
-    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _griefingFactor) external onlyInit {
+    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _griefingFactor, uint256 _wholeGriefing) external onlyInit {
         token = ERC20(_token);
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
         griefingFactor = _griefingFactor;
+				WHOLE_GRIEFING = _wholeGriefing;
 
         initialized();
     }

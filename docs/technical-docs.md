@@ -50,10 +50,6 @@ function deleteItem(WithdrawLock[] storage self, WithdrawLock item) internal ret
 }
 ```
 
-### QUESTIONS
-- What's the difference between `WithdrawLock[]` and `WithdrawLock item` ?
-- Do we assume that the longest lock in the array is the oldest, thus we delete it?
-
 <br />
 
 ## Lock.sol
@@ -79,7 +75,7 @@ import "@aragon/os/contracts/common/IForwarderFee.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
-// library we created
+// library we created to manage locks
 import "./lib/WithdrawLockLib.sol";
 ```
 
@@ -96,6 +92,7 @@ uint256 public lockAmount;
 uint256 public griefingFactor;
 // the griefingFactor is multiplied by `WHOLE_GRIEFING` to create a fractional griefingFactor
 // example: the app's standard `lockDuration` multiplied by the user's active locks multiplied by the `griefingFactor` on this lock, all divided by WHOLE_GRIEFING to either create a multiplier or fractional percentage of the standard `lockDuration`
+// - note: since this is a constant it can be set here rather than in the `initialize()` function
 uint256 private constant WHOLE_GRIEFING = 100;
 ```
 
@@ -112,6 +109,8 @@ The idea behind this is to prevent spamming of proposals.
 > Note: this only works if permissions on the lock-app are set so that only members of the DAO `canForward()`. If _anyone_ can submit proposals or DAO members can easily transfer their membership tokens between accounts the griefing mechanism is much less effective.
 
 ### Mapping Addresses to Locks
+
+`addressesWithdawLocks` maps an address to it's locks. Since an address can have multiple locks, these locks are stored in a `WithdrawLock[]` dynamically sized array. Each lock is a `WithdrawLock` struct that has an `unlockAmount` and `unlockTime`. Each address is mapped to a `WithdrawLock[]` array that holds that address's `WithdrawLock` stucts.
 ```
 // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in future we must use a mapping instead.
 mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks;
@@ -177,8 +176,7 @@ function changeGriefingFactor(uint256 _griefingFactor) external auth(CHANGE_GRIE
 ```
 
 ### Withdrawing Locks
-QUESTION
-What is the difference between the `withdrawTokens()` function and the `withdrawTokens(uint256 _numberWithdrawLocks)` function? Do they both allow an address to request a lock withdrawal, but one allows the callers to specify how many locks and the other just tries to withdraw all the locks?
+`withdrawTokens()` allows the caller to withdraw all available tokens while the `withdrawTokens(uint256 _numberWithdrawLocks)` allows the callers to specify how many locks to withdraw.
 ```
 /**
 * @notice Withdraw all withdrawable tokens
@@ -310,6 +308,7 @@ function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal
 		require(_numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
 
 		uint256 amountOwed = 0;
+		// The use of withdrawLockCount variable is only to keep a count of how many locks are going to be witdrawn so we can emit an event that the frontend will be listening to so we can react to it.
 		uint256 withdrawLockCount = 0;
 
 		for (uint256 withdrawLockIndex = 0; withdrawLockIndex < _numberWithdrawLocks; withdrawLockIndex++) {
@@ -324,6 +323,7 @@ function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal
 		}
 		token.transfer(_sender, amountOwed);
 
+		// emitting an event for the front end to display
 		emit Withdrawal(_sender, withdrawLockCount);
 }
 ```
