@@ -135,7 +135,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Locks `@tokenAmount(self.token(): address, self.getGriefing(): uint + self.lockAmount(): uint)` tokens and forwards desired action
+    * @notice Locks `@tokenAmount(self.token(): address, self.getGriefing(): uint + self.lockAmount(): uint)` tokens and executes desired action
     * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
     *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
     * @param _evmCallScript Script to execute
