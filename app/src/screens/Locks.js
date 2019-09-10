@@ -18,8 +18,6 @@ function Locks({ locks }) {
     tokenDecimals,
   } = useAppState()
 
-  console.log('grief', griefingFactor)
-
   return (
     <Split
       primary={<LockTable locks={locks} tokenSymbol={tokenSymbol} tokenDecimals={tokenDecimals} />}

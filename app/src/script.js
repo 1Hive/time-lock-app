@@ -18,7 +18,6 @@ retryEvery(() =>
 
 async function initialize(tokenAddress) {
   const tokenContract = app.external(tokenAddress, tokenAbi)
-  console.log('contract', tokenContract)
   return createStore(tokenContract)
 }
 
@@ -113,7 +112,6 @@ async function updateLockAmount(state, { newLockAmount }) {
 }
 
 async function updateGriefingFactor(state, { newGriefingFactor }) {
-  console.log('changed', newGriefingFactor)
   return {
     ...state,
     griefingFactor: newGriefingFactor,

@@ -158,10 +158,6 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
         runScript(_evmCallScript, new bytes(0), new address[](0));
     }
 
-    function testRadspec() public view returns (address) {
-        return msg.sender;
-    }
-
     function getWithdrawLocksCount(address _lockAddress) public view returns (uint256) {
         return addressesWithdrawLocks[_lockAddress].length;
     }
