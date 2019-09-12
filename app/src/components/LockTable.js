@@ -1,6 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
-import { DataView, Text, Countdown, Box, useTheme } from '@aragon/ui'
+import { DataView, Text, Countdown, Box, useTheme, breakpoint } from '@aragon/ui'
 import { formatTokenAmount, toHours } from '../lib/math-utils'
 import { reduceTotal } from '../lib/lock-utils'
 import EmptyState from '../screens/EmptyState'
@@ -24,12 +24,16 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const totalLocked = reduceTotal(locked)
   return (
     <>
-      <BoxPad style={totalUnlocked > 0 ? { borderLeft: `3px solid ${theme.positive}` } : {}}>
+      <BoxPad border={totalUnlocked > 0 ? `2px solid ${theme.positive}` : ''}>
         <Wrap>
           <Text>Unlocked balance:</Text>
-          <Text size="large" weight="bold" color={totalUnlocked > 0 ? String(theme.positive) : ''}>
+          <Balance
+            size={totalUnlocked > 0 ? 'xlarge' : 'large'}
+            weight="bold"
+            color={totalUnlocked > 0 ? String(theme.positive) : ''}
+          >
             {formatTokenAmount(totalUnlocked, false, tokenDecimals)} {tokenSymbol}{' '}
-          </Text>
+          </Balance>
         </Wrap>
       </BoxPad>
       {locked.length > 0 ? (
@@ -54,6 +58,25 @@ const BoxPad = styled(Box)`
   > div {
     padding: 20px;
   }
+
+  ${({ border }) =>
+    `
+    border-top: ${border};
+    border-bottom: ${border};
+    `}
+
+  ${({ border }) =>
+    breakpoint(
+      'medium',
+      `border: ${border};
+       border-width: 3px;
+      `
+    )}  
+  }}
+`
+
+const Balance = styled(Text)`
+  color: ${props => props.color};
 `
 
 const Wrap = styled.div`
