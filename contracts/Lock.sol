@@ -29,7 +29,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     uint256 public lockAmount;
 
     uint256 public spamPenaltyFactor;
-    uint256 private constant WHOLE_SPAM_PENALTY = 100;
+    uint256 private constant WHOLE_SPAM_PENALTY = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
