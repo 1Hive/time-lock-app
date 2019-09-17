@@ -17,7 +17,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     bytes32 public constant CHANGE_DURATION_ROLE = keccak256("CHANGE_DURATION_ROLE");
     bytes32 public constant CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
-    bytes32 public constant CHANGE_GRIEFING_ROLE = keccak256("CHANGE_GRIEFING_ROLE");
+    bytes32 public constant CHANGE_SPAM_PENALTY_ROLE = keccak256("CHANGE_SPAM_PENALTY_ROLE");
     bytes32 public constant LOCK_TOKENS_ROLE = keccak256("LOCK_TOKENS_ROLE");
 
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
@@ -27,9 +27,9 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     ERC20 public token;
     uint256 public lockDuration;
     uint256 public lockAmount;
-    uint256 public griefingFactor;
 
-    uint256 private constant WHOLE_GRIEFING = 100;
+    uint256 public spamPenaltyFactor;
+    uint256 private constant WHOLE_SPAM_PENALTY = 100;
 
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
@@ -38,7 +38,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
-    event ChangeGriefingFactor(uint256 newGriefingFactor);
+    event ChangeSpamPenaltyFactor(uint256 newSpamPenaltyFactor);
     event NewLock(address lockAddress, uint256 unlockTime, uint256 lockAmount);
     event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 
@@ -47,13 +47,13 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @param _token The token which will be locked when forwarding actions
     * @param _lockDuration The duration tokens will be locked before being able to be withdrawn
     * @param _lockAmount The amount of the token that is locked for each forwarded action
-    * @param _griefingFactor The griefing pct will be calculated as `griefingFactor / WHOLE_GRIEFING`
+    * @param _spamPenaltyFactor The spam penalty factor (`_spamPenaltyFactor / WHOLE_SPAM_PENALTY`)
     */
-    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _griefingFactor) external onlyInit {
+    function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _spamPenaltyFactor) external onlyInit {
         token = ERC20(_token);
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
-        griefingFactor = _griefingFactor;
+        spamPenaltyFactor = _spamPenaltyFactor;
 
         initialized();
     }
@@ -77,12 +77,12 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Change griefing factor to `_griefingFactor`
-    * @param _griefingFactor The new griefing factor
+    * @notice Change spam penalty factor to `_spamPenaltyFactor`
+    * @param _spamPenaltyFactor The new spam penalty factor
     */
-    function changeGriefingFactor(uint256 _griefingFactor) external auth(CHANGE_GRIEFING_ROLE) {
-        griefingFactor = _griefingFactor;
-        emit ChangeGriefingFactor(griefingFactor);
+    function changeSpamPenaltyFactor(uint256 _spamPenaltyFactor) external auth(CHANGE_SPAM_PENALTY_ROLE) {
+        spamPenaltyFactor = _spamPenaltyFactor;
+        emit ChangeSpamPenaltyFactor(_spamPenaltyFactor);
     }
 
     /**
@@ -104,14 +104,14 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Tells the forward fee token and amount of the Lock app
     * @dev IFeeForwarder interface conformance
-    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
+    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
     * @return Forwarder token address
     * @return Forwarder lock amount
     */
     function forwardFee() external view returns (address, uint256) {
-        (uint256 _griefAmount, ) = getGriefing();
+        (uint256 _spamPenaltyAmount, ) = getSpamPenalty();
 
-        uint256 totalLockAmountRequired = lockAmount.add(_griefAmount);
+        uint256 totalLockAmountRequired = lockAmount.add(_spamPenaltyAmount);
 
         return (address(token), totalLockAmountRequired);
     }
@@ -135,18 +135,18 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Locks `@tokenAmount(self.token(): address, self.getGriefing(): uint + self.lockAmount(): uint)` tokens and executes desired action
+    * @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(): uint + self.lockAmount(): uint)` tokens and executes desired action
     * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
-    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
+    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
     * @param _evmCallScript Script to execute
     */
     function forward(bytes _evmCallScript) public {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
-        (uint256 griefAmount, uint256 griefDuration) = getGriefing();
+        (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty();
 
-        uint256 totalAmount = lockAmount.add(griefAmount);
-        uint256 totalDuration = lockDuration.add(griefDuration);
+        uint256 totalAmount = lockAmount.add(spamPenaltyAmount);
+        uint256 totalDuration = lockDuration.add(spamPenaltyDuration);
 
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         uint256 unlockTime = getTimestamp().add(totalDuration);
@@ -167,7 +167,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @return amount penalty
     * @return duration penalty
     */
-    function getGriefing() public view returns (uint256, uint256) {
+    function getSpamPenalty() public view returns (uint256, uint256) {
         WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
 
         uint256 activeLocks = 0;
@@ -177,7 +177,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
             }
         }
 
-        return (lockAmount.mul(activeLocks).mul(griefingFactor).div(WHOLE_GRIEFING), lockDuration.mul(activeLocks).mul(griefingFactor).div(WHOLE_GRIEFING));
+        return (lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(WHOLE_SPAM_PENALTY), lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(WHOLE_SPAM_PENALTY));
     }
 
     function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {
