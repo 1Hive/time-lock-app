@@ -155,7 +155,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
     describe('getGriefing(address _sender)', () => {
       it("get's griefing amount and duration", async () => {
         const [actualGriefingAmount, actualGriefingDuration] = Object.values(
-          await lockForwarder.getGriefing(rootAccount)
+          await lockForwarder.getGriefing({ from: rootAccount })
         )
 
         assert.equal(actualGriefingAmount, 0)
@@ -179,7 +179,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
 
         it('griefing amount and duration increase for second lock', async () => {
           const [actualGriefingAmount, actualGriefingDuration] = Object.values(
-            await lockForwarder.getGriefing(rootAccount)
+            await lockForwarder.getGriefing({ from: rootAccount })
           )
 
           assert.equal(actualGriefingAmount, 5)
@@ -196,7 +196,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           await lockForwarder.changeGriefingFactor(100)
 
           const [actualGriefingAmount, actualGriefingDuration] = Object.values(
-            await lockForwarder.getGriefing(rootAccount)
+            await lockForwarder.getGriefing({ from: rootAccount })
           )
 
           assert.equal(actualGriefingAmount, 10)

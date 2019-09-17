@@ -8,6 +8,7 @@ import { formatTokenAmount, formatTime } from '../lib/math-utils'
 function LockSettings({
   duration,
   amount,
+  griefingFactor,
   tokenAddress,
   tokenName,
   tokenSymbol,
@@ -24,31 +25,24 @@ function LockSettings({
           </InfoRow>
           <InfoRow>
             <Text>Amount</Text>
-            <Text>{`${formatTokenAmount(
-              amount,
-              false,
-              tokenDecimals
-            )} ${tokenSymbol}`}</Text>
+            <Text>{`${formatTokenAmount(amount, false, tokenDecimals)} ${tokenSymbol}`}</Text>
           </InfoRow>
           <InfoRow>
             <Text>Token</Text>
             {network && tokenSymbol && (
-              <TokenBadge
-                address={tokenAddress}
-                name={tokenName}
-                symbol={tokenSymbol}
-                networkType={network.type}
-              />
+              <TokenBadge address={tokenAddress} name={tokenName} symbol={tokenSymbol} networkType={network.type} />
             )}
+          </InfoRow>
+          <InfoRow>
+            <Text>Griefing</Text>
+            <Duration>{griefingFactor} %</Duration>
           </InfoRow>
         </ul>
       </Box>
       <Box header="info" css={{ backgroundColor: theme.infoBackground }}>
         <Wrap>
           <IconAttention style={{ marginRight: '6px' }} />
-          <Text color={theme.infoSurfaceContent}>
-            You can withdraw your tokens once they unlock
-          </Text>
+          <Text color={theme.infoSurfaceContent}>You can withdraw your tokens once they unlock</Text>
         </Wrap>
       </Box>
     </>

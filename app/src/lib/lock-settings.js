@@ -1,7 +1,9 @@
+// contract getter | variableName | data type
 const lockSettings = [
   ['token', 'tokenAddress'],
   ['lockDuration', 'lockDuration', 'time'],
   ['lockAmount', 'lockAmount', 'bignumber'],
+  ['griefingFactor', 'griefingFactor', 'number'],
 ]
 
 export function hasLoadedLockSettings(state) {

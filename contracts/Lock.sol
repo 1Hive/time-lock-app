@@ -38,6 +38,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
+    event ChangeGriefingFactor(uint256 newGriefingFactor);
     event NewLock(address lockAddress, uint256 unlockTime, uint256 lockAmount);
     event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 
@@ -81,7 +82,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     */
     function changeGriefingFactor(uint256 _griefingFactor) external auth(CHANGE_GRIEFING_ROLE) {
         griefingFactor = _griefingFactor;
-        emit ChangeLockAmount(griefingFactor);
+        emit ChangeGriefingFactor(griefingFactor);
     }
 
     /**
@@ -108,7 +109,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @return Forwarder lock amount
     */
     function forwardFee() external view returns (address, uint256) {
-        (uint256 _griefAmount, ) = getGriefing(msg.sender);
+        (uint256 _griefAmount, ) = getGriefing();
 
         uint256 totalLockAmountRequired = lockAmount.add(_griefAmount);
 
@@ -134,7 +135,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Locks the required amount of tokens and executes the specified action
+    * @notice Locks `@tokenAmount(self.token(): address, self.getGriefing(): uint + self.lockAmount(): uint)` tokens and executes desired action
     * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
     *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
     * @param _evmCallScript Script to execute
@@ -142,7 +143,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     function forward(bytes _evmCallScript) public {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
-        (uint256 griefAmount, uint256 griefDuration) = getGriefing(msg.sender);
+        (uint256 griefAmount, uint256 griefDuration) = getGriefing();
 
         uint256 totalAmount = lockAmount.add(griefAmount);
         uint256 totalDuration = lockDuration.add(griefDuration);
@@ -162,13 +163,12 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Get's amount and duration penalty based on the number of current locks `_sender` has
-    * @param _sender account that is going to lock tokens
+    * @notice Get's amount and duration penalty based on the number of current locks `msg.sender` has
     * @return amount penalty
     * @return duration penalty
     */
-    function getGriefing(address _sender) public view returns (uint256, uint256) {
-        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
+    function getGriefing() public view returns (uint256, uint256) {
+        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
 
         uint256 activeLocks = 0;
         for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocks.length; withdrawLockIndex++) {

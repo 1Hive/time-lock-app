@@ -12,15 +12,12 @@ retryEvery(() =>
   app
     .call('token')
     .subscribe(initialize, err =>
-      console.error(
-        `Could not start background script execution due to the contract not loading token: ${err}`
-      )
+      console.error(`Could not start background script execution due to the contract not loading token: ${err}`)
     )
 )
 
 async function initialize(tokenAddress) {
   const tokenContract = app.external(tokenAddress, tokenAbi)
-  console.log('contract', tokenContract)
   return createStore(tokenContract)
 }
 
@@ -48,6 +45,8 @@ async function createStore(tokenContract) {
           return updateLockDuration(nextState, returnValues)
         case 'ChangeLockAmount':
           return updateLockAmount(nextState, returnValues)
+        case 'ChangeGriefingFactor':
+          return updateGriefingFactor(nextState, returnValues)
         case 'NewLock':
           return newLock(nextState, returnValues)
         case 'Withdrawal':
@@ -87,9 +86,7 @@ async function updateConnectedAccount(state, { account }) {
   const locks = []
 
   for (let i = 0; i < lockCount; i++) {
-    let { unlockTime, lockAmount } = await app
-      .call('addressesWithdrawLocks', account, i)
-      .toPromise()
+    let { unlockTime, lockAmount } = await app.call('addressesWithdrawLocks', account, i).toPromise()
     locks.push({ unlockTime: marshallDate(unlockTime), lockAmount })
   }
 
@@ -100,17 +97,24 @@ async function updateConnectedAccount(state, { account }) {
   }
 }
 
-async function updateLockDuration({ settings, ...state }, { newLockDuration }) {
+async function updateLockDuration(state, { newLockDuration }) {
   return {
     ...state,
-    settings: { ...settings, duration: marshallDate(newLockDuration) },
+    lockDuration: marshallDate(newLockDuration),
   }
 }
 
-async function updateLockAmount({ settings, ...state }, { newLockAmount }) {
+async function updateLockAmount(state, { newLockAmount }) {
   return {
     ...state,
-    settings: { ...settings, amount: newLockAmount },
+    lockAmount: newLockAmount,
+  }
+}
+
+async function updateGriefingFactor(state, { newGriefingFactor }) {
+  return {
+    ...state,
+    griefingFactor: newGriefingFactor,
   }
 }
 
@@ -126,10 +130,7 @@ async function newLock(state, { lockAddress, unlockTime, lockAmount }) {
   }
 }
 
-async function newWithdrawal(
-  state,
-  { withdrawalAddress, withdrawalLockCount }
-) {
+async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) {
   const { account, locks } = state
 
   //skip if no connected account or new withdrawl doesn't correspond to connected account
@@ -177,9 +178,7 @@ async function getLockSettings() {
         .then(value => ({ [key]: value }))
     )
   )
-    .then(settings =>
-      settings.reduce((acc, setting) => ({ ...acc, ...setting }), {})
-    )
+    .then(settings => settings.reduce((acc, setting) => ({ ...acc, ...setting }), {}))
     .catch(err => {
       console.error('Failed to load lock settings', err)
       // Return an empty object to try again later
@@ -188,9 +187,7 @@ async function getLockSettings() {
 }
 
 function getBlockNumber() {
-  return new Promise((resolve, reject) =>
-    app.web3Eth('getBlockNumber').subscribe(resolve, reject)
-  )
+  return new Promise((resolve, reject) => app.web3Eth('getBlockNumber').subscribe(resolve, reject))
 }
 
 function marshallDate(date) {
