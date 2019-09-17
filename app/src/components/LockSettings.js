@@ -8,7 +8,7 @@ import { formatTokenAmount, formatTime } from '../lib/math-utils'
 function LockSettings({
   duration,
   amount,
-  griefingFactor,
+  spamPenaltyFactor,
   tokenAddress,
   tokenName,
   tokenSymbol,
@@ -34,8 +34,8 @@ function LockSettings({
             )}
           </InfoRow>
           <InfoRow>
-            <Text>Griefing</Text>
-            <Duration>{griefingFactor} %</Duration>
+            <Text>Spam penalty</Text>
+            <Duration>{spamPenaltyFactor} %</Duration>
           </InfoRow>
         </ul>
       </Box>

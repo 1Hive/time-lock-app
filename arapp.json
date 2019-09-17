@@ -11,8 +11,8 @@
       "params": []
     },
     {
-      "name": "Change griefing factor role",
-      "id": "CHANGE_GRIEFING_ROLE",
+      "name": "Change spam penalty factor role",
+      "id": "CHANGE_SPAM_PENALTY_ROLE",
       "params": []
     },
     {

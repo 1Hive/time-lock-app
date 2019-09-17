@@ -3,7 +3,7 @@ const lockSettings = [
   ['token', 'tokenAddress'],
   ['lockDuration', 'lockDuration', 'time'],
   ['lockAmount', 'lockAmount', 'bignumber'],
-  ['griefingFactor', 'griefingFactor', 'number'],
+  ['spamPenaltyFactor', 'spamPenaltyFactor', 'number'],
 ]
 
 export function hasLoadedLockSettings(state) {
