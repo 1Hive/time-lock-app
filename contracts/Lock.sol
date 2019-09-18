@@ -88,7 +88,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Withdraw all withdrawable tokens
     */
-    function withdrawTokens() external {
+    function withdrawAllTokens() external {
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         _withdrawTokens(msg.sender, addressWithdrawLocks.length);
     }
