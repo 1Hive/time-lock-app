@@ -73,6 +73,7 @@ function initializeState(state, tokenContract) {
     token && app.indentify(`Lock ${token.tokenSymbol}`)
 
     return {
+      ...cachedState,
       ...state,
       ...token,
       ...(await getLockSettings()),

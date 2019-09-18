@@ -3,12 +3,13 @@ import styled from 'styled-components'
 
 import { TokenBadge, Text, theme, Box, IconAttention } from '@aragon/ui'
 import { useNetwork } from '@aragon/api-react'
-import { formatTokenAmount, formatTime } from '../lib/math-utils'
+import { formatTokenAmount, formatTime, round } from '../lib/math-utils'
 
 function LockSettings({
   duration,
   amount,
   spamPenaltyFactor,
+  pctBase,
   tokenAddress,
   tokenName,
   tokenSymbol,
@@ -35,7 +36,7 @@ function LockSettings({
           </InfoRow>
           <InfoRow>
             <Text>Spam penalty</Text>
-            <Duration>{spamPenaltyFactor} %</Duration>
+            <Duration>{round(spamPenaltyFactor * 100)} %</Duration>
           </InfoRow>
         </ul>
       </Box>
