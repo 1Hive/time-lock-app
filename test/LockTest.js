@@ -20,7 +20,6 @@ contract('Lock', ([rootAccount, ...accounts]) => {
   const MOCK_TOKEN_BALANCE = bigExp(1000,decimals)
   const INITIAL_LOCK_AMOUNT = bigExp(10, decimals)
   const INITIAL_LOCK_DURATION = 60 // seconds
-  const WHOLE_SPAM_PENALTY = pct16(100)
   const INITIAL_SPAM_PENALTY_FACTOR = pct16(50) // 50%
 
   before('deploy DAO', async () => {
