@@ -115,7 +115,7 @@ contract Template is TemplateBase {
 
         acl.createPermission(root, lock, lock.CHANGE_DURATION_ROLE(), voting);
         acl.createPermission(root, lock, lock.CHANGE_AMOUNT_ROLE(), voting);
-        acl.createPermission(root, lock, lock.CHANGE_GRIEFING_ROLE(), voting);
+        acl.createPermission(root, lock, lock.CHANGE_SPAM_PENALTY_ROLE(), voting);
 
         acl.createPermission(this, lock, lock.LOCK_TOKENS_ROLE(), this);
         // creating param for Token balance Oracle

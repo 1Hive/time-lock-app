@@ -45,8 +45,8 @@ async function createStore(tokenContract) {
           return updateLockDuration(nextState, returnValues)
         case 'ChangeLockAmount':
           return updateLockAmount(nextState, returnValues)
-        case 'ChangeGriefingFactor':
-          return updateGriefingFactor(nextState, returnValues)
+        case 'ChangeSpamPenaltyFactor':
+          return updateSpamPenaltyFactor(nextState, returnValues)
         case 'NewLock':
           return newLock(nextState, returnValues)
         case 'Withdrawal':
@@ -111,10 +111,10 @@ async function updateLockAmount(state, { newLockAmount }) {
   }
 }
 
-async function updateGriefingFactor(state, { newGriefingFactor }) {
+async function updateSpamPenaltyFactor(state, { newSpamPenaltyFactor }) {
   return {
     ...state,
-    griefingFactor: newGriefingFactor,
+    spamPenaltyFactor: newSpamPenaltyFactor,
   }
 }
 

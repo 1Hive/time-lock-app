@@ -10,20 +10,20 @@ import { deployedContract } from './helpers/helpers'
 contract('Lock', ([rootAccount, ...accounts]) => {
   let daoDeployment = new DaoDeployment()
   let lockBase, lockForwarder, mockErc20
-  let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE, LOCK_TOKENS_ROLE, CHANGE_GRIEFING_ROLE
+  let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE, LOCK_TOKENS_ROLE, CHANGE_SPAM_PENALTY_ROLE
 
   const MOCK_TOKEN_BALANCE = 1000
   const INITIAL_LOCK_DURATION = 60 // seconds
   const INITIAL_LOCK_AMOUNT = 10
-  const WHOLE_GRIEFING = 100
-  const INITIAL_GRIEFING_FACTOR = 50 // 50%
+  const WHOLE_SPAM_PENALTY = 100
+  const INITIAL_SPAM_PENALTY_FACTOR = 50 // 50%
 
   before('deploy DAO', async () => {
     await daoDeployment.deployBefore()
     lockBase = await Lock.new()
     CHANGE_DURATION_ROLE = await lockBase.CHANGE_DURATION_ROLE()
     CHANGE_AMOUNT_ROLE = await lockBase.CHANGE_AMOUNT_ROLE()
-    CHANGE_GRIEFING_ROLE = await lockBase.CHANGE_GRIEFING_ROLE()
+    CHANGE_SPAM_PENALTY_ROLE = await lockBase.CHANGE_SPAM_PENALTY_ROLE()
     LOCK_TOKENS_ROLE = await lockBase.LOCK_TOKENS_ROLE()
   })
 
@@ -42,7 +42,7 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         mockErc20.address,
         INITIAL_LOCK_DURATION,
         INITIAL_LOCK_AMOUNT,
-        INITIAL_GRIEFING_FACTOR
+        INITIAL_SPAM_PENALTY_FACTOR
       )
     })
 
@@ -50,13 +50,13 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       const actualToken = await lockForwarder.token()
       const actualLockDuration = await lockForwarder.lockDuration()
       const actualLockAmount = await lockForwarder.lockAmount()
-      const actualGriefingFactor = await lockForwarder.griefingFactor()
+      const actualSpamPenaltyFactor = await lockForwarder.spamPenaltyFactor()
       const hasInitialized = await lockForwarder.hasInitialized()
 
       assert.strictEqual(actualToken, mockErc20.address)
       assert.equal(actualLockDuration, INITIAL_LOCK_DURATION)
       assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
-      assert.equal(actualGriefingFactor, INITIAL_GRIEFING_FACTOR)
+      assert.equal(actualSpamPenaltyFactor, INITIAL_SPAM_PENALTY_FACTOR)
       assert.isTrue(hasInitialized)
     })
 
@@ -97,15 +97,15 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       })
     })
 
-    describe('changeGriefingFactor(uint256 _griefingFactor)', () => {
-      it('sets a new griefing factor', async () => {
-        await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, CHANGE_GRIEFING_ROLE, rootAccount)
-        const expectedGriefingFactor = 100
+    describe('changeSpamPenaltyFactor(uint256 _spamPenaltyFactor)', () => {
+      it('sets a new spam penalty factor', async () => {
+        await daoDeployment.acl.createPermission(rootAccount, lockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, rootAccount)
+        const expectedSpamPenaltyFactor = 100
 
-        await lockForwarder.changeGriefingFactor(expectedGriefingFactor)
+        await lockForwarder.changeSpamPenaltyFactor(expectedSpamPenaltyFactor)
 
-        const actualGriefingFactor = await lockForwarder.griefingFactor()
-        assert.equal(actualGriefingFactor, expectedGriefingFactor)
+        const actualSpamPenaltyFactor = await lockForwarder.spamPenaltyFactor()
+        assert.equal(actualSpamPenaltyFactor, expectedSpamPenaltyFactor)
       })
     })
 
@@ -137,14 +137,14 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           assert.equal(actualLockAmount, 15)
         })
 
-        it('forward fee increases when increasing griefing factor', async () => {
+        it('forward fee increases when increasing spam penalty factor', async () => {
           await daoDeployment.acl.createPermission(
             rootAccount,
             lockForwarder.address,
-            CHANGE_GRIEFING_ROLE,
+            CHANGE_SPAM_PENALTY_ROLE,
             rootAccount
           )
-          await lockForwarder.changeGriefingFactor(100)
+          await lockForwarder.changeSpamPenaltyFactor(100)
           const [_, actualLockAmount] = Object.values(await lockForwarder.forwardFee({ from: rootAccount }))
 
           assert.equal(actualLockAmount, 20)
@@ -152,14 +152,14 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       })
     })
 
-    describe('getGriefing(address _sender)', () => {
-      it("get's griefing amount and duration", async () => {
-        const [actualGriefingAmount, actualGriefingDuration] = Object.values(
-          await lockForwarder.getGriefing({ from: rootAccount })
+    describe('getSpamPenalty()', () => {
+      it("get's spam penalty amount and duration", async () => {
+        const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
+          await lockForwarder.getSpamPenalty({ from: rootAccount })
         )
 
-        assert.equal(actualGriefingAmount, 0)
-        assert.equal(actualGriefingDuration, 0)
+        assert.equal(actualSpamPenaltyAmount, 0)
+        assert.equal(actualSpamPenaltyDuration, 0)
       })
 
       context('account has 1 active lock', async () => {
@@ -177,30 +177,30 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           await lockForwarder.forward(script, { from: rootAccount })
         })
 
-        it('griefing amount and duration increase for second lock', async () => {
-          const [actualGriefingAmount, actualGriefingDuration] = Object.values(
-            await lockForwarder.getGriefing({ from: rootAccount })
+        it('spam penalty amount and duration increase for second lock', async () => {
+          const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
+            await lockForwarder.getSpamPenalty({ from: rootAccount })
           )
 
-          assert.equal(actualGriefingAmount, 5)
-          assert.equal(actualGriefingDuration, 30)
+          assert.equal(actualSpamPenaltyAmount, 5)
+          assert.equal(actualSpamPenaltyDuration, 30)
         })
 
-        it('griefing amount and duration increase when increasing griefing factor', async () => {
+        it('spam penalty amount and duration increase when increasing spam penalty factor', async () => {
           await daoDeployment.acl.createPermission(
             rootAccount,
             lockForwarder.address,
-            CHANGE_GRIEFING_ROLE,
+            CHANGE_SPAM_PENALTY_ROLE,
             rootAccount
           )
-          await lockForwarder.changeGriefingFactor(100)
+          await lockForwarder.changeSpamPenaltyFactor(100)
 
-          const [actualGriefingAmount, actualGriefingDuration] = Object.values(
-            await lockForwarder.getGriefing({ from: rootAccount })
+          const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
+            await lockForwarder.getSpamPenalty({ from: rootAccount })
           )
 
-          assert.equal(actualGriefingAmount, 10)
-          assert.equal(actualGriefingDuration, 60)
+          assert.equal(actualSpamPenaltyAmount, 10)
+          assert.equal(actualSpamPenaltyDuration, 60)
         })
       })
     })
@@ -276,14 +276,14 @@ contract('Lock', ([rootAccount, ...accounts]) => {
           assert.equal(actualLockAmount, expectedLockAmount)
         })
 
-        it('lock amount increases when increasing griefing factor', async () => {
+        it('lock amount increases when increasing spam penalty factor', async () => {
           await daoDeployment.acl.createPermission(
             rootAccount,
             lockForwarder.address,
-            CHANGE_GRIEFING_ROLE,
+            CHANGE_SPAM_PENALTY_ROLE,
             rootAccount
           )
-          await lockForwarder.changeGriefingFactor(100)
+          await lockForwarder.changeSpamPenaltyFactor(100)
           const expectedLockAmount = 20
 
           await mockErc20.approve(lockForwarder.address, expectedLockAmount, {
@@ -300,12 +300,12 @@ contract('Lock', ([rootAccount, ...accounts]) => {
         let lockCount = 3
 
         beforeEach('Forward actions', async () => {
-          let griefing
-          let griefingPct = INITIAL_GRIEFING_FACTOR / WHOLE_GRIEFING
+          let spamPenalty
+          let spamPenaltyPct = INITIAL_SPAM_PENALTY_FACTOR / WHOLE_SPAM_PENALTY
 
           for (let i = 0; i < lockCount; i++) {
-            griefing = i * INITIAL_LOCK_AMOUNT * griefingPct
-            await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT + griefing, {
+            spamPenalty = i * INITIAL_LOCK_AMOUNT * spamPenaltyPct
+            await mockErc20.approve(lockForwarder.address, INITIAL_LOCK_AMOUNT + spamPenalty, {
               from: rootAccount,
             })
             await lockForwarder.forward(script, { from: rootAccount })
@@ -429,8 +429,8 @@ contract('Lock', ([rootAccount, ...accounts]) => {
       await assertRevert(lockForwarder.changeLockAmount(10), 'APP_AUTH_FAILED')
     })
 
-    it('reverts on changing griefing factor', async () => {
-      await assertRevert(lockForwarder.changeGriefingFactor(10), 'APP_AUTH_FAILED')
+    it('reverts on changing spam penalty factor', async () => {
+      await assertRevert(lockForwarder.changeSpamPenaltyFactor(10), 'APP_AUTH_FAILED')
     })
 
     it('reverts on withdrawing tokens', async () => {
