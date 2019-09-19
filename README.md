@@ -24,7 +24,7 @@ We recommend (but do not require) that the lock function is set to an [ACL Oracl
 
 ### Initialization
 
-The Time Lock app is initialized with a `_token`, `_lockDuration`, and `_lockAmount` parameters which determines the type of token that can be locked, how long locks are locked the amount of tokens to lock.
+The Time Lock app is initialized with a `_token`, `_lockDuration`, `_lockAmount` and `_spamPenaltyFactor` parameters which determines the token to be locked, how long tokens are locked, the amount of tokens to lock and a penalty percentage for spamming proposals.
 At initialization the `_token` parameter can be set to an ERC20 token. It cannot be changed. If a change is necessary the user can install a new instance and change permissions in the organization to reflect the change.
 
 ### Roles
@@ -85,7 +85,7 @@ You will also see the configuration for your local deployment in the terminal. I
 
 ### Template
 
-The Time Lock app is initialized with a `_lockDuration` of 1:30 minutes and a `_lockAmount` of 20 LKT tokens.
+The Time Lock app is initialized with a `_lockDuration` of 1:30 minutes, a `_lockAmount` of 20 LKT tokens and a `_spamPenaltyFactor` of 100%.
 The app has the permission to create votes, so if you try to mint yourself some tokens from the `tokens` app it will first prompt you to approve the Time Lock app to transfer 20 LKT tokens to the contract on your behalf.
 Once the forwarding is performed you should be able to see the current lock and a timer indicating how much time until you can re-claim your 20 LKT tokens.
 
