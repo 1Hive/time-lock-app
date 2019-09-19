@@ -18,7 +18,7 @@ The code in this repo has not been audited.
 
 The Time Lock app is a [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the Time Lock app a permission like `Create Votes` the user will be prompted and required to lock tokens before the user's intent can be forwarded.
 
-We do not protect the lock function with a role, so anyone is able to make locks and forward actions. We keep track of when locks are made and by whom so that users are only able to re-claim locks that they have made after the duration has elapsed.
+We keep track of when locks are made and by whom so that users are only able to re-claim locks that they have made after the duration has elapsed.
 
 We recommend (but do not require) that the lock function is set to an [ACL Oracle](https://hack.aragon.org/docs/acl_IACLOracle) set to the DAO's Token Manager. This is how permissions are set up in our [demo template](https://github.com/1Hive/time-lock-app/blob/master/contracts/examples/Template.sol#L122). This allows the Oracle to check if the `msg.sender` of a proposal has tokens in the DAO's Token Manager (and thus is a member of the DAO who's qualified to create proposals) before granting the `canForward()` functionality. This means that in order to submit a proposal one must lock tokens, and in order to lock tokens one must be a member of the DAO.
 
