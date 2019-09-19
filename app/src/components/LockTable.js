@@ -1,6 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
-import { DataView, Text, Countdown, Box, useTheme, breakpoint } from '@aragon/ui'
+import { DataView, Text, Countdown, Box, useTheme, breakpoint, useViewport } from '@aragon/ui'
 import { formatTokenAmount, toHours } from '../lib/math-utils'
 import { reduceTotal } from '../lib/lock-utils'
 import EmptyState from '../screens/EmptyState'
@@ -9,6 +9,7 @@ const PAGINATION = 10
 
 function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const theme = useTheme()
+  const { below } = useViewport()
 
   const renderUnlockTime = unlockTime => {
     const now = new Date()
@@ -24,15 +25,16 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const totalLocked = reduceTotal(locked)
   return (
     <>
-      <BoxPad border={totalUnlocked > 0 ? `2px solid ${theme.positive}` : ''}>
+      <BoxPad borderColor={totalUnlocked > 0 ? theme.positive : ''} below={below}>
         <Wrap>
           <Text>Unlocked balance:</Text>
-          {totalUnlocked > 0 ? (<Balance
-            weight='bold'
-            background={String(theme.positive)}
-          >
-            {formatTokenAmount(totalUnlocked, false, tokenDecimals)} {tokenSymbol}{' '}
-          </Balance>) : <Text size='large'>0</Text>}
+          {totalUnlocked > 0 ? (
+            <Balance weight="bold" background={String(theme.positive)}>
+              {formatTokenAmount(totalUnlocked, false, tokenDecimals)} {tokenSymbol}{' '}
+            </Balance>
+          ) : (
+            <Text size="large">0 {tokenSymbol}</Text>
+          )}
         </Wrap>
       </BoxPad>
       {locked.length > 0 ? (
@@ -58,25 +60,22 @@ const BoxPad = styled(Box)`
     padding: 20px;
   }
 
-  ${({ border }) =>
+  ${({ borderColor, below }) =>
+    below('medium')
+      ? `
+    border-top: 2px solid ${borderColor};
+    border-bottom: 2px solid ${borderColor};
     `
-    border-top: ${border};
-    border-bottom: ${border};
-    `}
-
-  ${({ border }) =>
-    breakpoint(
-      'medium',
-      `border: ${border};
-       border-width: 2px;
-      `
-    )}  
-  }}
+      : `
+      border-left: 3px solid ${borderColor};
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      `}
 `
 
 const Balance = styled(Text)`
   color: white;
-  background: ${({ background }) => background };
+  background: ${({ background }) => background};
   padding: 4px 8px;
   border-radius: 3px;
   font-size: 18px;
