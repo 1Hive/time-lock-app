@@ -3,7 +3,8 @@ const lockSettings = [
   ['token', 'tokenAddress'],
   ['lockDuration', 'lockDuration', 'time'],
   ['lockAmount', 'lockAmount', 'bignumber'],
-  ['spamPenaltyFactor', 'spamPenaltyFactor', 'number'],
+  ['spamPenaltyFactor', 'spamPenaltyFactor', 'bignumber'],
+  ['PCT_BASE', 'pctBase', 'bignumber'],
 ]
 
 export function hasLoadedLockSettings(state) {

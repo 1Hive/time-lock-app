@@ -103,7 +103,7 @@ contract Template is TemplateBase {
 
         // Initialize apps
         vault.initialize();
-        lock.initialize(ERC20(lockToken), 90, 20e18, 100);
+        lock.initialize(ERC20(lockToken), 90, 20e18, 100 * PCT);
         tokenManager.initialize(token, true, 0);
         voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
 

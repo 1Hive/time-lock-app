@@ -29,7 +29,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     uint256 public lockAmount;
 
     uint256 public spamPenaltyFactor;
-    uint256 private constant WHOLE_SPAM_PENALTY = 100;
+    uint256 public constant PCT_BASE = 10 ** 18; // 0% = 0; 1% = 10^16; 100% = 10^18
 
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
@@ -47,7 +47,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     * @param _token The token which will be locked when forwarding actions
     * @param _lockDuration The duration tokens will be locked before being able to be withdrawn
     * @param _lockAmount The amount of the token that is locked for each forwarded action
-    * @param _spamPenaltyFactor The spam penalty factor (`_spamPenaltyFactor / WHOLE_SPAM_PENALTY`)
+    * @param _spamPenaltyFactor The spam penalty factor (`_spamPenaltyFactor / PCT_BASE`)
     */
     function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _spamPenaltyFactor) external onlyInit {
         token = ERC20(_token);
@@ -177,7 +177,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
             }
         }
 
-        return (lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(WHOLE_SPAM_PENALTY), lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(WHOLE_SPAM_PENALTY));
+        return (lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE), lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE));
     }
 
     function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {

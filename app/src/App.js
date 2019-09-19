@@ -31,7 +31,7 @@ function App() {
           }
         />
 
-        <Locks locks={locks} />
+        {!isSyncing && <Locks locks={locks} />}
         <SidePanel
           title="Withdraw"
           opened={panelState.visible}
@@ -57,11 +57,5 @@ const TempHeader = styled.div`
   background: rgb(255, 255, 255);
 `
 
-export default () => {
-  const { api } = useAragonApi()
-  return <App api={api} />
-}
+export default App
 
-App.propTypes = {
-  api: PropTypes.object,
-}
