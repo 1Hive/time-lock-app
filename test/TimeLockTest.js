@@ -264,7 +264,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
             CHANGE_SPAM_PENALTY_ROLE,
             rootAccount
           )
-          await timeLockForwarder.changeSpamPenaltyFactor(100)
+          await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
 
           const [
             actualSpamPenaltyAmount,
