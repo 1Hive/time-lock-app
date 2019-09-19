@@ -11,7 +11,7 @@ function Locks({ locks }) {
   const {
     lockAmount,
     lockDuration,
-    spamPenaltyFactor,
+    numData,
     tokenAddress,
     tokenName,
     tokenSymbol,
@@ -25,7 +25,7 @@ function Locks({ locks }) {
         <LockSettings
           amount={lockAmount}
           duration={lockDuration}
-          spamPenaltyFactor={spamPenaltyFactor}
+          spamPenaltyFactor={numData.spamPenaltyFactor}
           tokenName={tokenName}
           tokenAddress={tokenAddress}
           tokenSymbol={tokenSymbol}

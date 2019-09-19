@@ -4,8 +4,13 @@ const ExecutionTarget = artifacts.require('ExecutionTarget')
 const TimeLock = artifacts.require('TimeLockMock')
 const MockErc20 = artifacts.require('TokenMock')
 
+import BN from 'bn.js'
 import DaoDeployment from './helpers/DaoDeployment'
 import { deployedContract } from './helpers/helpers'
+
+const bigExp = (x, y = 0) => new BN(x).mul(new BN(10).pow(new BN(y)))
+const pct16 = x => bigExp(x, 16)
+const decimals = 18
 
 contract('TimeLock', ([rootAccount, ...accounts]) => {
   let daoDeployment = new DaoDeployment()
@@ -15,11 +20,10 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
     LOCK_TOKENS_ROLE,
     CHANGE_SPAM_PENALTY_ROLE
 
-  const MOCK_TOKEN_BALANCE = 1000
+  const MOCK_TOKEN_BALANCE = bigExp(1000, decimals)
+  const INITIAL_LOCK_AMOUNT = bigExp(10, decimals)
   const INITIAL_LOCK_DURATION = 60 // seconds
-  const INITIAL_LOCK_AMOUNT = 10
-  const WHOLE_SPAM_PENALTY = 100
-  const INITIAL_SPAM_PENALTY_FACTOR = 50 // 50%
+  const INITIAL_SPAM_PENALTY_FACTOR = pct16(50) // 50%
 
   before('deploy DAO', async () => {
     await daoDeployment.deployBefore()
@@ -64,8 +68,11 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
 
       assert.strictEqual(actualToken, mockErc20.address)
       assert.equal(actualLockDuration, INITIAL_LOCK_DURATION)
-      assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
-      assert.equal(actualSpamPenaltyFactor, INITIAL_SPAM_PENALTY_FACTOR)
+      assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT.toString())
+      assert.equal(
+        actualSpamPenaltyFactor,
+        INITIAL_SPAM_PENALTY_FACTOR.toString()
+      )
       assert.isTrue(hasInitialized)
     })
 
@@ -112,12 +119,12 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           CHANGE_AMOUNT_ROLE,
           rootAccount
         )
-        const expectedLockAmount = 20
+        const expectedLockAmount = bigExp(20, decimals)
 
         await timeLockForwarder.changeLockAmount(expectedLockAmount)
 
         const actualLockAmount = await timeLockForwarder.lockAmount()
-        assert.equal(actualLockAmount, expectedLockAmount)
+        assert.equal(actualLockAmount, expectedLockAmount.toString())
       })
     })
 
@@ -129,14 +136,17 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           CHANGE_SPAM_PENALTY_ROLE,
           rootAccount
         )
-        const expectedSpamPenaltyFactor = 100
+        const expectedSpamPenaltyFactor = pct16(100)
 
         await timeLockForwarder.changeSpamPenaltyFactor(
           expectedSpamPenaltyFactor
         )
 
         const actualSpamPenaltyFactor = await timeLockForwarder.spamPenaltyFactor()
-        assert.equal(actualSpamPenaltyFactor, expectedSpamPenaltyFactor)
+        assert.equal(
+          actualSpamPenaltyFactor,
+          expectedSpamPenaltyFactor.toString()
+        )
       })
     })
 
@@ -147,7 +157,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
         )
 
         assert.strictEqual(actualToken, mockErc20.address)
-        assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT)
+        assert.equal(actualLockAmount, INITIAL_LOCK_AMOUNT.toString())
       })
 
       context('account has 1 active lock', async () => {
@@ -178,7 +188,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           const [_, actualLockAmount] = Object.values(
             await timeLockForwarder.forwardFee({ from: rootAccount })
           )
-          assert.equal(actualLockAmount, 15)
+          assert.equal(actualLockAmount, bigExp(15, decimals).toString())
         })
 
         it('forward fee increases when increasing spam penalty factor', async () => {
@@ -188,12 +198,12 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
             CHANGE_SPAM_PENALTY_ROLE,
             rootAccount
           )
-          await timeLockForwarder.changeSpamPenaltyFactor(100)
+          await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
           const [_, actualLockAmount] = Object.values(
             await timeLockForwarder.forwardFee({ from: rootAccount })
           )
 
-          assert.equal(actualLockAmount, 20)
+          assert.equal(actualLockAmount, bigExp(20, decimals).toString())
         })
       })
     })
@@ -243,7 +253,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
             await timeLockForwarder.getSpamPenalty({ from: rootAccount })
           )
 
-          assert.equal(actualSpamPenaltyAmount, 5)
+          assert.equal(actualSpamPenaltyAmount, bigExp(5, decimals).toString())
           assert.equal(actualSpamPenaltyDuration, 30)
         })
 
@@ -263,7 +273,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
             await timeLockForwarder.getSpamPenalty({ from: rootAccount })
           )
 
-          assert.equal(actualSpamPenaltyAmount, 10)
+          assert.equal(actualSpamPenaltyAmount, bigExp(10, decimals).toString())
           assert.equal(actualSpamPenaltyDuration, 60)
         })
       })
@@ -300,7 +310,9 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
         )
 
         const expectedCounter = 1
-        const expectedLockerBalance = MOCK_TOKEN_BALANCE - INITIAL_LOCK_AMOUNT
+        const expectedLockerBalance = MOCK_TOKEN_BALANCE.sub(
+          INITIAL_LOCK_AMOUNT
+        )
         const expectedLockAppBalance = INITIAL_LOCK_AMOUNT
         const expectedNumberOfLocks = addressLocks + 1
         const expectedLockAmount = INITIAL_LOCK_AMOUNT
@@ -323,12 +335,12 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
         assert.equal(actualCounter, expectedCounter)
 
         //transfered tokens successfully
-        assert.equal(actualLockerBalance, expectedLockerBalance)
-        assert.equal(actualLockAppBalance, expectedLockAppBalance)
+        assert.equal(actualLockerBalance, expectedLockerBalance.toString())
+        assert.equal(actualLockAppBalance, expectedLockAppBalance.toString())
 
         //lock created successfully
         assert.equal(actualNumberOfLocks, expectedNumberOfLocks)
-        assert.equal(actualLockAmount, expectedLockAmount)
+        assert.equal(actualLockAmount, expectedLockAmount.toString())
       })
 
       it('cannot forward if sender does not approve lock app to transfer tokens', async () => {
@@ -351,7 +363,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
         })
 
         it('lock amount increases for second lock', async () => {
-          const expectedLockAmount = 15
+          const expectedLockAmount = bigExp(15, decimals)
 
           await mockErc20.approve(
             timeLockForwarder.address,
@@ -365,7 +377,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           const {
             lockAmount: actualLockAmount,
           } = await timeLockForwarder.addressesWithdrawLocks(rootAccount, 1)
-          assert.equal(actualLockAmount, expectedLockAmount)
+          assert.equal(actualLockAmount, expectedLockAmount.toString())
         })
 
         it('lock amount increases when increasing spam penalty factor', async () => {
@@ -375,8 +387,8 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
             CHANGE_SPAM_PENALTY_ROLE,
             rootAccount
           )
-          await timeLockForwarder.changeSpamPenaltyFactor(100)
-          const expectedLockAmount = 20
+          await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
+          const expectedLockAmount = bigExp(20, decimals)
 
           await mockErc20.approve(
             timeLockForwarder.address,
@@ -390,7 +402,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           const {
             lockAmount: actualLockAmount,
           } = await timeLockForwarder.addressesWithdrawLocks(rootAccount, 1)
-          assert.equal(actualLockAmount, expectedLockAmount)
+          assert.equal(actualLockAmount, expectedLockAmount.toString())
         })
       })
 
@@ -398,18 +410,16 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
         let lockCount = 3
 
         beforeEach('Forward actions', async () => {
-          let spamPenalty
-          let spamPenaltyPct = INITIAL_SPAM_PENALTY_FACTOR / WHOLE_SPAM_PENALTY
+          await mockErc20.approve(
+            timeLockForwarder.address,
+            INITIAL_LOCK_AMOUNT.mul(bigExp(10)),
+            {
+              //approve more than required
+              from: rootAccount,
+            }
+          )
 
           for (let i = 0; i < lockCount; i++) {
-            spamPenalty = i * INITIAL_LOCK_AMOUNT * spamPenaltyPct
-            await mockErc20.approve(
-              timeLockForwarder.address,
-              INITIAL_LOCK_AMOUNT + spamPenalty,
-              {
-                from: rootAccount,
-              }
-            )
             await timeLockForwarder.forward(script, { from: rootAccount })
           }
         })
@@ -439,9 +449,9 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           const addressPrevBalance = await mockErc20.balanceOf(rootAccount)
 
           const expectedLockCount = lockCount - locksToWithdraw
-          const expectedBalance =
-            addressPrevBalance.toNumber() +
-            locksToWithdraw * INITIAL_LOCK_AMOUNT
+          const expectedBalance = addressPrevBalance.add(
+            INITIAL_LOCK_AMOUNT.mul(bigExp(locksToWithdraw))
+          )
 
           //increase time
           await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
@@ -454,7 +464,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           )
           const actualBalance = await mockErc20.balanceOf(rootAccount)
           assert.equal(actualLockCount, expectedLockCount)
-          assert.equal(actualBalance, expectedBalance)
+          assert.equal(actualBalance, expectedBalance.toString())
         })
 
         //Having issue when calling withdrawTokens() (Invalid number of arguments in Solidity function)
@@ -516,10 +526,9 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
           it("does not change current locks's lockAmount", async () => {
             const locksToWithdraw = 1
             const previousBalance = await mockErc20.balanceOf(rootAccount)
-            const newLockAmount = 20
+            const newLockAmount = bigExp(20, decimals)
 
-            const expectedBalance =
-              previousBalance.toNumber() + INITIAL_LOCK_AMOUNT
+            const expectedBalance = previousBalance.add(INITIAL_LOCK_AMOUNT)
 
             await timeLockForwarder.changeLockAmount(newLockAmount)
             //current locks's lockAmount is 10
@@ -529,7 +538,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
             })
 
             const actualBalance = await mockErc20.balanceOf(rootAccount)
-            assert.equal(actualBalance, expectedBalance)
+            assert.equal(actualBalance, expectedBalance.toString())
           })
         })
       })
