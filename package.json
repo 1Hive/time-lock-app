@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run start:template",
-    "start:template": "aragon run --template Template --template-init @ARAGON_ENS --files dist",
+    "start:template": "",
     "start:http": "npm run start:http:template",
     "start:http:template": "aragon run --http localhost:8001 --http-served-from ./dist --template Template --template-init @ARAGON_ENS",
     "build": "cd app && npm run build && cd ..",
@@ -58,6 +58,7 @@
     "eslint-plugin-react-hooks": "^1.6.0",
     "eslint-plugin-standard": "^4.0.0",
     "ethlint": "^1.2.3",
+    "ganache-cli": "^6.0.0",
     "prettier": "^1.17.1",
     "solidity-coverage": "^0.6.2",
     "truffle": "^5.0.1"

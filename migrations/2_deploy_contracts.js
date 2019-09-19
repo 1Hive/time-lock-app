@@ -1,5 +1,5 @@
-var App = artifacts.require('./Lock.sol')
+var App = artifacts.require('./TimeLock.sol')
 
-module.exports = function (deployer) {
+module.exports = function(deployer) {
   deployer.deploy(App)
 }
