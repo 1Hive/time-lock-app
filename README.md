@@ -1,6 +1,6 @@
 # Time Lock <img align="right" src="https://github.com/1Hive/website/blob/master/website/static/img/bee.png" height="80px" />
 
-[![CircleCI](https://circleci.com/gh/1Hive/lock-app.svg?style=svg)](https://circleci.com/gh/1Hive/lock-app)
+[![CircleCI](https://circleci.com/gh/1Hive/lock-app.svg?style=svg)](https://circleci.com/gh/1Hive/time-lock-app)
 [![Coverage Status](https://coveralls.io/repos/github/1Hive/lock-app/badge.svg?branch=master&service=github)](https://coveralls.io/github/1Hive/lock-app?branch=master&service=github)
 [![Crytic Status](https://crytic.io/api/repositories/bRQyzLe1Qm2ckDlBsGQKLQ/badge.svg?token=4d485d8b-e6c1-4a3b-9f8e-cb3133ee3c4f)](https://crytic.io/1Hive/lock-app)
 
