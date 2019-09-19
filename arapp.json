@@ -24,26 +24,26 @@
   "environments": {
     "default": {
       "network": "development",
-      "appName": "lock.open.aragonpm.eth"
+      "appName": "time-lock.open.aragonpm.eth"
     },
     "staging": {
       "registry": "0x98df287b6c145399aaa709692c8d308357bc085d",
-      "appName": "lock-staging.open.aragonpm.eth",
+      "appName": "time-lock-staging.open.aragonpm.eth",
       "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
       "network": "rinkeby"
     },
     "rinkeby": {
       "registry": "0x98df287b6c145399aaa709692c8d308357bc085d",
-      "appName": "lock.open.aragonpm.eth",
+      "appName": "time-lock.open.aragonpm.eth",
       "wsRPC": "wss://rinkeby.eth.aragon.network/ws",
       "network": "rinkeby"
     },
     "mainnet": {
       "registry": "0x314159265dd8dbb310642f98f50c066173c1259b",
-      "appName": "lock.open.aragonpm.eth",
+      "appName": "time-lock.open.aragonpm.eth",
       "wsRPC": "wss://mainnet.eth.aragon.network/ws",
       "network": "mainnet"
     }
   },
-  "path": "contracts/Lock.sol"
+  "path": "contracts/TimeLock.sol"
 }

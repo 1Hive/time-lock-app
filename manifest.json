@@ -1,12 +1,26 @@
 {
-  "name": "Lock",
+  "name": "Time Lock",
   "description": "Require users to lock tokens for a configurable period of time in order to forward an intent",
   "details_url": "/meta/details.md",
-  "source_url": "https://github.com/1Hive/lock-app/",
+  "source_url": "https://github.com/1Hive/time-lock-app/",
   "icons": [
     {
-      "src": "/meta/icon.png",
-      "sizes": "192x192"
+      "src": "/meta/icon.svg",
+      "sizes": "56x56"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/meta/screenshot-1.png"
+    },
+    {
+      "src": "/meta/screenshot-2.png"
+    },
+    {
+      "src": "/meta/screenshot-3.png"
+    },
+    {
+      "src": "/meta/screenshot-4.png"
     }
   ],
   "start_url": "/index.html",
