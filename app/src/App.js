@@ -16,8 +16,6 @@ function App() {
 
   return (
     <>
-      <TempHeader />
-      {/*"Remove when new client released"*/}
       <Main>
         <SyncIndicator visible={isSyncing} />
         <Header
