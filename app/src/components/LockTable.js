@@ -25,7 +25,7 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
   const totalLocked = reduceTotal(locked)
   return (
     <>
-      <BoxPad borderColor={totalUnlocked > 0 ? theme.positive : ''} below={below}>
+      <BoxPad borderColor={String(theme.positive)} below={below} unlocked={totalUnlocked > 0}>
         <Wrap>
           <Text>Unlocked balance:</Text>
           {totalUnlocked > 0 ? (
@@ -33,7 +33,9 @@ function LockTable({ locks, tokenSymbol, tokenDecimals }) {
               {formatTokenAmount(totalUnlocked, false, tokenDecimals)} {tokenSymbol}{' '}
             </Balance>
           ) : (
-            <Text size="large">0 {tokenSymbol}</Text>
+            <Text size="large" weight="bold">
+              0 {tokenSymbol}
+            </Text>
           )}
         </Wrap>
       </BoxPad>
@@ -60,13 +62,14 @@ const BoxPad = styled(Box)`
     padding: 20px;
   }
 
-  ${({ borderColor, below }) =>
-    below('medium')
+  ${({ borderColor, below, unlocked }) =>
+    below('medium') && unlocked
       ? `
     border-top: 2px solid ${borderColor};
     border-bottom: 2px solid ${borderColor};
     `
-      : `
+      : unlocked &&
+        `
       border-left: 3px solid ${borderColor};
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
