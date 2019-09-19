@@ -9,7 +9,7 @@ import "@aragon/os/contracts/lib/math/SafeMath.sol";
 import "./lib/WithdrawLockLib.sol";
 
 
-contract Lock is AragonApp, IForwarder, IForwarderFee {
+contract TimeLock is AragonApp, IForwarder, IForwarderFee {
 
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
@@ -43,7 +43,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 
     /**
-    * @notice Initialize the Lock app
+    * @notice Initialize the Time Lock app
     * @param _token The token which will be locked when forwarding actions
     * @param _lockDuration The duration tokens will be locked before being able to be withdrawn
     * @param _lockAmount The amount of the token that is locked for each forwarded action
@@ -102,9 +102,9 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Tells the forward fee token and amount of the Lock app
+    * @notice Tells the forward fee token and amount of the Time Lock app
     * @dev IFeeForwarder interface conformance
-    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
+    *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
     * @return Forwarder token address
     * @return Forwarder lock amount
     */
@@ -117,7 +117,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Tells whether the Lock app is a forwarder or not
+    * @notice Tells whether the Time Lock app is a forwarder or not
     * @dev IForwarder interface conformance
     * @return Always true
     */
@@ -137,7 +137,7 @@ contract Lock is AragonApp, IForwarder, IForwarderFee {
     /**
     * @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(): uint + self.lockAmount(): uint)` tokens and executes desired action
     * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
-    *      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
+    *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
     * @param _evmCallScript Script to execute
     */
     function forward(bytes _evmCallScript) public {

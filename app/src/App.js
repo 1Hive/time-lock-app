@@ -19,7 +19,12 @@ function App() {
       <Main>
         <SyncIndicator visible={isSyncing} />
         <Header
-          primary={<Title text="Lock" after={tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>} />}
+          primary={
+            <Title
+              text="Time Lock"
+              after={tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>}
+            />
+          }
           secondary={
             locks.length > 0 ? (
               <MainButton
@@ -38,7 +43,11 @@ function App() {
           onClose={panelState.requestClose}
           onTransitionEnd={panelState.endTransition}
         >
-          <WithdrawLocks panelOpened={panelState.opened} locks={locks} withdraw={actions.withdraw} />
+          <WithdrawLocks
+            panelOpened={panelState.opened}
+            locks={locks}
+            withdraw={actions.withdraw}
+          />
         </SidePanel>
       </Main>
     </>
