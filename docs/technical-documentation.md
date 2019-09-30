@@ -1,12 +1,12 @@
 # Time Lock App Technical Docs
 
-This doc goes through `Lock.sol` and `WithdrawLockLib.sol`, explaining every function and it's intended functionality.
+This doc goes through `TimeLock.sol` and `WithdrawLockLib.sol`, explaining every function and it's intended functionality.
 
 <br />
 
 ## WithdrawLockLib.sol
 
-`WithdrawLockLib.sol` is a library that creates and deletes locks. Because `Lock.sol` is dependent on many Aragon apps that use solidity 0.4.24, `WithdrawLockLib.sol` also uses solidity 0.4.24. In the future these may be upgraded.
+`WithdrawLockLib.sol` is a library that creates and deletes locks. Because `TimeLock.sol` is dependent on many Aragon apps that use solidity 0.4.24, `WithdrawLockLib.sol` also uses solidity 0.4.24. In the future these may be upgraded.
 
 ```
 pragma solidity ^0.4.24;
@@ -56,13 +56,13 @@ function deleteItem(WithdrawLock[] storage self, WithdrawLock item) internal ret
 
 <br />
 
-## Lock.sol
+## TimeLock.sol
 
-`Lock.sol` is an Aragon [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the time lock app a permission like `Create Votes` the user will be prompted and required to lock tokens before the user's intent can be forwarded.
+`TimeLock.sol` is an Aragon [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the Time Lock app a permission like `Create Votes` the user will be prompted and required to lock tokens before the user's intent can be forwarded.
 
 ### Solidity Version
 
-`Lock.sol` is dependent on many Aragon apps that use solidity 0.4.24. In the future these may be upgraded.
+`TimeLock.sol` is dependent on many Aragon apps that use solidity 0.4.24. In the future these may be upgraded.
 
 ```
 pragma solidity ^0.4.24;
@@ -114,7 +114,7 @@ e.g. if the `lockAmount` = 20 tokens, `lockDuration` = 6 days and `spamPenaltyFa
 
 The idea behind this is to prevent spamming of proposals.
 
-> Note: this only works if permissions on the lock-app are set so that only members of the DAO `canForward()`. If _anyone_ can submit proposals or DAO members can easily transfer their membership tokens between accounts the spam penalty mechanism is much less effective.
+> Note: this only works if permissions on the Time Lock App are set so that only members of the DAO `canForward()`. If _anyone_ can submit proposals or DAO members can easily transfer their membership tokens between accounts the spam penalty mechanism is much less effective.
 
 ### Mapping Addresses to Locks
 
@@ -157,7 +157,7 @@ function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, 
 
 ### Changing Global Parameters
 
-These functions allow changes to the standard parameters for the time lock app. We anticipate the `CHANGE_DURATION_ROLE`, `CHANGE_AMOUNT_ROLE`, and `CHANGE_SPAM_PENALTY_ROLE` to be set to the `Voting` app or to an administrative member of the DAO.
+These functions allow changes to the standard parameters for the Time Lock app. We anticipate the `CHANGE_DURATION_ROLE`, `CHANGE_AMOUNT_ROLE`, and `CHANGE_SPAM_PENALTY_ROLE` to be set to the `Voting` app or to an administrative member of the DAO.
 
 ```
 /**
@@ -231,7 +231,7 @@ function forwardFee() external view returns (address, uint256) {
 }
 ```
 
-`isForwarder()` ensures that the time lock app can forward intents
+`isForwarder()` ensures that the Time Lock app can forward intents
 
 ```
 /**
