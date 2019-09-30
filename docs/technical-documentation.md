@@ -1,4 +1,4 @@
-# Lock App Technical Docs
+# Time Lock App Technical Docs
 
 This doc goes through `Lock.sol` and `WithdrawLockLib.sol`, explaining every function and it's intended functionality.
 
@@ -58,7 +58,7 @@ function deleteItem(WithdrawLock[] storage self, WithdrawLock item) internal ret
 
 ## Lock.sol
 
-`Lock.sol` is an Aragon [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the lock app a permission like `Create Votes` the user will be prompted and required to lock tokens before the user's intent can be forwarded.
+`Lock.sol` is an Aragon [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the time lock app a permission like `Create Votes` the user will be prompted and required to lock tokens before the user's intent can be forwarded.
 
 ### Solidity Version
 
@@ -93,27 +93,28 @@ import "./lib/WithdrawLockLib.sol";
 ERC20 public token;
 // the amount of time to lock the token
 uint256 public lockDuration;
-// the aount of that token to be locked
+// the amount of that token to be locked
 uint256 public lockAmount;
 // a multiplier that increases the amount and time locked depending on how many locks you already have (spam deterent)
-uint256 public griefingFactor;
-// the griefingFactor is multiplied by `WHOLE_GRIEFING` to create a fractional griefingFactor
-// example: the app's standard `lockDuration` multiplied by the user's active locks multiplied by the `griefingFactor` on this lock, all divided by WHOLE_GRIEFING to either create a multiplier or fractional percentage of the standard `lockDuration`
+uint256 public spamPenaltyFactor;
+// the spamPenaltyFactor is divided by `PCT_BASE` to create a fractional percentage
+// example: the app's standard `lockDuration` multiplied by the user's active locks multiplied by the `spamPenaltyFactor` on this lock, all divided by PCT_BASE to either create a multiplier or fractional percentage of the standard `lockDuration`
 // - note: since this is a constant it can be set here rather than in the `initialize()` function
-uint256 private constant WHOLE_GRIEFING = 100;
+// The spam penalty value is expressed between zero and a maximum of 10^18 (that represents 100%). As a consequence, it's important to consider that 1% is actually represented by 10^16.
+uint256 public constant PCT_BASE = 10 ** 18;
 ```
 
-### Griefing Variables Explained
+### Spam penalty Variables Explained
 
-The griefing calculation does not reflect how many tokens should be locked and for how long, but rather the amount and duration to add to the base lockAmount and lockDuration. The `griefingFactor` is a % of the base lock amount and duration values set on the app. This value increases the more locks an account has, making it more and more expensive to create many locks.
+The spam penalty calculation does not reflect how many tokens should be locked and for how long, but rather the amount and duration to add to the base lockAmount and lockDuration. The `spamPenaltyFactor` is a % of the base lock amount and duration values set on the app. This value increases the more locks an account has, making it more and more expensive to create many locks.
 
-When an account wants to submit a proposal they will have to lock `lockAmount` + (`lockAmount` _ `totalActiveLocks` _ `griefingFactor`/ `WHOLE_GRIEFING`) for a duration of `lockDuration` + (`lockDuration` _ `totalActiveLocks` _ `griefingFactor` / `WHOLE_GRIEFING`)
+When an account wants to submit a proposal they will have to lock `lockAmount` + (`lockAmount` _ `totalActiveLocks` _ `spamPenaltyFactor`/ `PCT_BASE`) for a duration of `lockDuration` + (`lockDuration` _ `totalActiveLocks` _ `spamPenaltyFactor` / `PCT_BASE`)
 
-e.g. if the `lockAmount` = 20 tokens, `lockDuration` = 6 days and `griefingFactor` is 50%, and the account submitting a proposal has 2 active locks, they will have to lock 40 tokens for 12 days.
+e.g. if the `lockAmount` = 20 tokens, `lockDuration` = 6 days and `spamPenaltyFactor` is 50%, and the account submitting a proposal has 2 active locks, they will have to lock 40 tokens for 12 days.
 
 The idea behind this is to prevent spamming of proposals.
 
-> Note: this only works if permissions on the lock-app are set so that only members of the DAO `canForward()`. If _anyone_ can submit proposals or DAO members can easily transfer their membership tokens between accounts the griefing mechanism is much less effective.
+> Note: this only works if permissions on the lock-app are set so that only members of the DAO `canForward()`. If _anyone_ can submit proposals or DAO members can easily transfer their membership tokens between accounts the spam penalty mechanism is much less effective.
 
 ### Mapping Addresses to Locks
 
@@ -129,25 +130,26 @@ mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks
 ```
 event ChangeLockDuration(uint256 newLockDuration);
 event ChangeLockAmount(uint256 newLockAmount);
+event ChangeSpamPenaltyFactor(uint256 newSpamPenaltyFactor);
 event NewLock(address lockAddress, uint256 unlockTime, uint256 lockAmount);
 event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 ```
 
-### Initializing The Lock App
+### Initializing The Time Lock App
 
 ```
 /**
-* @notice Initialize the Lock app
+* @notice Initialize the Time Lock app
 * @param _token The token which will be locked when forwarding actions
 * @param _lockDuration The duration tokens will be locked before being able to be withdrawn
 * @param _lockAmount The amount of the token that is locked for each forwarded action
-* @param _griefingFactor The griefing pct will be calculated as `griefingFactor / WHOLE_GRIEFING`
+* @param _spamPenaltyFactor The spam penalty factor (`_spamPenaltyFactor / PCT_BASE`)
 */
-function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _griefingFactor) external onlyInit {
+function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _spamPenaltyFactor) external onlyInit {
 		token = ERC20(_token);
 		lockDuration = _lockDuration;
 		lockAmount = _lockAmount;
-		griefingFactor = _griefingFactor;
+		spamPenaltyFactor = _spamPenaltyFactor;
 
 		initialized();
 }
@@ -155,7 +157,7 @@ function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, 
 
 ### Changing Global Parameters
 
-These functions allow changes to to the standard parameters for the lock app. We anticipate the `CHANGE_DURATION_ROLE`, `CHANGE_AMOUNT_ROLE`, and `CHANGE_GRIEFING_ROLE` to be set to the `Voting` app or to an administrative member of the DAO.
+These functions allow changes to the standard parameters for the time lock app. We anticipate the `CHANGE_DURATION_ROLE`, `CHANGE_AMOUNT_ROLE`, and `CHANGE_SPAM_PENALTY_ROLE` to be set to the `Voting` app or to an administrative member of the DAO.
 
 ```
 /**
@@ -177,12 +179,12 @@ function changeLockAmount(uint256 _lockAmount) external auth(CHANGE_AMOUNT_ROLE)
 }
 
 /**
-* @notice Change griefing factor to `_griefingFactor`
-* @param _griefingFactor The new griefing factor
+* @notice Change spam penalty factor to `_spamPenaltyFactor`
+* @param _spamPenaltyFactor The new spam penalty factor
 */
-function changeGriefingFactor(uint256 _griefingFactor) external auth(CHANGE_GRIEFING_ROLE) {
-		griefingFactor = _griefingFactor;
-		emit ChangeLockAmount(griefingFactor);
+function changeSpamPenaltyFactor(uint256 _spamPenaltyFactor) external auth(CHANGE_SPAM_PENALTY_ROLE) {
+		spamPenaltyFactor = _spamPenaltyFactor;
+		emit ChangeSpamPenaltyFactor(_spamPenaltyFactor);
 }
 ```
 
@@ -214,26 +216,26 @@ function withdrawTokens(uint256 _numberWithdrawLocks) external {
 
 ```
 /**
-* @notice Tells the forward fee token and amount of the Lock app
+* @notice Tells the forward fee token and amount of the Time Lock app
 * @dev IFeeForwarder interface conformance
-*      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
+*      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
 * @return Forwarder token address
 * @return Forwarder lock amount
 */
 function forwardFee() external view returns (address, uint256) {
-		(uint256 _griefAmount, ) = getGriefing(msg.sender);
+		(uint256 _spamPenaltyAmount, ) = getSpamPenalty();
 
-		uint256 totalLockAmountRequired = lockAmount.add(_griefAmount);
+		uint256 totalLockAmountRequired = lockAmount.add(_spamPenaltyAmount);
 
 		return (address(token), totalLockAmountRequired);
 }
 ```
 
-`isForwarder()` ensures that the lock app can forward intents
+`isForwarder()` ensures that the time lock app can forward intents
 
 ```
 /**
-* @notice Tells whether the Lock app is a forwarder or not
+* @notice Tells whether the Time Lock app is a forwarder or not
 * @dev IForwarder interface conformance
 * @return Always true
 */
@@ -242,7 +244,7 @@ function isForwarder() external pure returns (bool) {
 }
 ```
 
-`canForward()` checks if the `msg.sender` can forward an intent. This permission can be set to any app, but in the Dandelion Org Template we set it to a Token Manager Oracle that checks with the Token Manager app to make sure that the address that is trying to forward an intent is also a DAO token holder
+`canForward()` checks if the `msg.sender` can forward an intent. This permission can be set to any app, but in the Dandelion Org Template we set it to a [Token Balance Oracle](https://github.com/1Hive/token-oracle) that checks if the address that is trying to forward an intent is also a DAO token holder
 
 ```
 /**
@@ -259,18 +261,18 @@ function canForward(address _sender, bytes) public view returns (bool) {
 
 ```
 /**
-* @notice Locks the required amount of tokens and executes the specified action
+* @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(): uint + self.lockAmount(): uint)` tokens and executes desired action
 * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
-*      Note that the Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the griefing mechanism to work
+*      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
 * @param _evmCallScript Script to execute
 */
 function forward(bytes _evmCallScript) public {
 		require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
-		(uint256 griefAmount, uint256 griefDuration) = getGriefing(msg.sender);
+		(uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty();
 
-		uint256 totalAmount = lockAmount.add(griefAmount);
-		uint256 totalDuration = lockDuration.add(griefDuration);
+		uint256 totalAmount = lockAmount.add(spamPenaltyAmount);
+		uint256 totalDuration = lockDuration.add(spamPenaltyDuration);
 
 		WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
 		uint256 unlockTime = getTimestamp().add(totalDuration);
@@ -293,17 +295,16 @@ function getWithdrawLocksCount(address _lockAddress) public view returns (uint25
 }
 ```
 
-`getGriefing()` calculates the number of active locks an address has
+`getSpamPenalty()` calculates the amount and duration penalty of `msg.sender`
 
 ```
 /**
-* @notice Get's amount and duration penalty based on the number of current locks `_sender` has
-* @param _sender account that is going to lock tokens
+* @notice Get's amount and duration penalty based on the number of current locks `msg.sender` has
 * @return amount penalty
 * @return duration penalty
 */
-function getGriefing(address _sender) public view returns (uint256, uint256) {
-		WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
+function getSpamPenalty() public view returns (uint256, uint256) {
+		WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
 
 		uint256 activeLocks = 0;
 		for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocks.length; withdrawLockIndex++) {
@@ -312,7 +313,7 @@ function getGriefing(address _sender) public view returns (uint256, uint256) {
 				}
 		}
 
-		return (lockAmount.mul(activeLocks).mul(griefingFactor).div(WHOLE_GRIEFING), lockDuration.mul(activeLocks).mul(griefingFactor).div(WHOLE_GRIEFING));
+		return (lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE), lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE));
 }
 ```
 
@@ -342,10 +343,7 @@ function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal
 				}
 		}
 		token.transfer(_sender, amountOwed);
-
 		// emitting an event for the front end to display
 		emit Withdrawal(_sender, withdrawLockCount);
 }
 ```
-
-}
