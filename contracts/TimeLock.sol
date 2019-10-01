@@ -20,9 +20,10 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     bytes32 public constant CHANGE_SPAM_PENALTY_ROLE = keccak256("CHANGE_SPAM_PENALTY_ROLE");
     bytes32 public constant LOCK_TOKENS_ROLE = keccak256("LOCK_TOKENS_ROLE");
 
-    string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "LOCK_TOO_MANY_WITHDRAW_LOCKS";
-    string private constant ERROR_CAN_NOT_FORWARD = "LOCK_CAN_NOT_FORWARD";
-    string private constant ERROR_TRANSFER_REVERTED = "LOCK_TRANSFER_REVERTED";
+    string private constant ERROR_NOT_CONTRACT = "TIME_LOCK_NOT_CONTRACT";
+    string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "TIME_LOCK_TOO_MANY_WITHDRAW_LOCKS";
+    string private constant ERROR_CAN_NOT_FORWARD = "TIME_LOCK_CAN_NOT_FORWARD";
+    string private constant ERROR_TRANSFER_REVERTED = "TIME_LOCK_TRANSFER_REVERTED";
 
     ERC20 public token;
     uint256 public lockDuration;
@@ -33,7 +34,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
 
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
-    // future we must use a mapping instead.
+    // future we must use a mapping instead, requiring overhead of storing index.
     mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks;
 
     event ChangeLockDuration(uint256 newLockDuration);
@@ -50,6 +51,8 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     * @param _spamPenaltyFactor The spam penalty factor (`_spamPenaltyFactor / PCT_BASE`)
     */
     function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _spamPenaltyFactor) external onlyInit {
+        require(isContract(_token), ERROR_NOT_CONTRACT);
+
         token = ERC20(_token);
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
@@ -102,9 +105,10 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Tells the forward fee token and amount of the Time Lock app
+    * @notice Returns the forward fee token and required lock amount
     * @dev IFeeForwarder interface conformance
-    *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
+    *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an
+    *      EOA not another forwarder, in order for the spam penalty mechanism to work
     * @return Forwarder token address
     * @return Forwarder lock amount
     */
@@ -117,7 +121,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Tells whether the Time Lock app is a forwarder or not
+    * @notice Returns whether the Time Lock app is a forwarder or not
     * @dev IForwarder interface conformance
     * @return Always true
     */
@@ -126,7 +130,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Tells whether the _sender can forward actions or not
+    * @notice Returns whether the `_sender` can forward actions or not
     * @dev IForwarder interface conformance
     * @return True if _sender has LOCK_TOKENS_ROLE role
     */
@@ -136,22 +140,22 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
 
     /**
     * @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(): uint + self.lockAmount(): uint)` tokens and executes desired action
-    * @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
-    *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
+    * @dev IForwarder interface conformance.
+    *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an
+    *      EOA not another forwarder, in order for the spam penalty mechanism to work
     * @param _evmCallScript Script to execute
     */
     function forward(bytes _evmCallScript) public {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
+        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty();
 
         uint256 totalAmount = lockAmount.add(spamPenaltyAmount);
         uint256 totalDuration = lockDuration.add(spamPenaltyDuration);
-
-        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         uint256 unlockTime = getTimestamp().add(totalDuration);
-        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(unlockTime, totalAmount));
 
+        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(unlockTime, totalAmount));
         require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
         emit NewLock(msg.sender, unlockTime, totalAmount);
@@ -163,7 +167,9 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Get's amount and duration penalty based on the number of current locks `msg.sender` has
+    * @notice Get the amount and duration penalty based on the number of current locks `msg.sender` has
+    * @dev Potential griefing issue is considered acceptable. In this case a user would just have to wait and withdraw()
+    *      some tokens before this function and forward() could be called again.
     * @return amount penalty
     * @return duration penalty
     */
@@ -177,7 +183,10 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
             }
         }
 
-        return (lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE), lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE));
+        uint256 totalAmount = lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE);
+        uint256 totalPenalty = lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE);
+
+        return (totalAmount, totalPenalty);
     }
 
     function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {
