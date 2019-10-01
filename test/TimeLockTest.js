@@ -1,17 +1,19 @@
 const ExecutionTarget = artifacts.require('ExecutionTarget')
 const TimeLock = artifacts.require('TimeLockMock')
 const MockErc20 = artifacts.require('TokenMock')
+const Oracle = artifacts.require('TokenBalanceOracle')
 
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
 const deployDAO = require('./helpers/deployDao')
 const { assertRevert, deployedContract } = require('./helpers/helpers')
+const { hash: nameHash } = require('eth-ens-namehash')
 const BN = require('bn.js')
 
 const bigExp = (x, y = 0) => new BN(x).mul(new BN(10).pow(new BN(y)))
 const pct16 = x => bigExp(x, 16)
 const decimals = 18
 
-contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
+contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalance, ...accounts]) => {
   let timeLockBase, timeLockForwarder, mockErc20
   let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE, LOCK_TOKENS_ROLE, CHANGE_SPAM_PENALTY_ROLE
 
@@ -33,11 +35,18 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
     dao = daoDeployment.dao
     acl = daoDeployment.acl
 
-    const newLockAppReceipt = await dao.newAppInstance('0x1234', timeLockBase.address, '0x', false, {
-      from: appManager,
-    })
+    const newLockAppReceipt = await dao.newAppInstance(
+      nameHash('time-lock.aragonpm.test'),
+      timeLockBase.address,
+      '0x',
+      false,
+      {
+        from: appManager,
+      }
+    )
     timeLockForwarder = await TimeLock.at(deployedContract(newLockAppReceipt))
-    mockErc20 = await MockErc20.new(rootAccount, MOCK_TOKEN_BALANCE)
+
+    mockErc20 = await MockErc20.new(appManager, MOCK_TOKEN_BALANCE)
   })
 
   describe('initialize(address _token, uint256 _lockDuration, uint256 _lockAmount)', () => {
@@ -69,17 +78,17 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
     })
 
     it('checks account can forward actions', async () => {
-      await acl.createPermission(rootAccount, timeLockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
-      assert.isTrue(await timeLockForwarder.canForward(rootAccount, '0x'))
+      await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
+      assert.isTrue(await timeLockForwarder.canForward(appManager, '0x'))
     })
 
     it('cannot forward if account not permitted to lock tokens ', async () => {
-      assert.isFalse(await timeLockForwarder.canForward(rootAccount, '0x'))
+      assert.isFalse(await timeLockForwarder.canForward(appManager, '0x'))
     })
 
     describe('changeLockDuration(uint256 _lockDuration)', () => {
       it('sets a new lock duration', async () => {
-        await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_DURATION_ROLE, rootAccount)
+        await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_DURATION_ROLE, appManager)
         const expectedLockDuration = 120
 
         await timeLockForwarder.changeLockDuration(expectedLockDuration)
@@ -91,7 +100,7 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
 
     describe('changeLockAmount(uint256 _lockAmount)', () => {
       it('sets a new lock amount', async () => {
-        await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_AMOUNT_ROLE, rootAccount)
+        await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_AMOUNT_ROLE, appManager)
         const expectedLockAmount = bigExp(20, decimals)
 
         await timeLockForwarder.changeLockAmount(expectedLockAmount)
@@ -103,7 +112,7 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
 
     describe('changeSpamPenaltyFactor(uint256 _spamPenaltyFactor)', () => {
       it('sets a new spam penalty factor', async () => {
-        await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, rootAccount)
+        await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, appManager)
         const expectedSpamPenaltyFactor = pct16(100)
 
         await timeLockForwarder.changeSpamPenaltyFactor(expectedSpamPenaltyFactor)
@@ -129,22 +138,22 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
             calldata: executionTarget.contract.methods.execute().encodeABI(),
           }
           const script = encodeCallScript([action])
-          await acl.createPermission(rootAccount, timeLockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
+          await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
           await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT, {
-            from: rootAccount,
+            from: appManager,
           })
-          await timeLockForwarder.forward(script, { from: rootAccount })
+          await timeLockForwarder.forward(script, { from: appManager })
         })
 
         it('forward fee increases for second lock', async () => {
-          const [_, actualLockAmount] = Object.values(await timeLockForwarder.forwardFee({ from: rootAccount }))
+          const [_, actualLockAmount] = Object.values(await timeLockForwarder.forwardFee({ from: appManager }))
           assert.equal(actualLockAmount, bigExp(15, decimals).toString())
         })
 
         it('forward fee increases when increasing spam penalty factor', async () => {
-          await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, rootAccount)
+          await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, appManager)
           await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
-          const [_, actualLockAmount] = Object.values(await timeLockForwarder.forwardFee({ from: rootAccount }))
+          const [_, actualLockAmount] = Object.values(await timeLockForwarder.forwardFee({ from: appManager }))
 
           assert.equal(actualLockAmount, bigExp(20, decimals).toString())
         })
@@ -154,7 +163,7 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
     describe('getSpamPenalty()', () => {
       it("get's spam penalty amount and duration", async () => {
         const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-          await timeLockForwarder.getSpamPenalty({ from: rootAccount })
+          await timeLockForwarder.getSpamPenalty({ from: appManager })
         )
 
         assert.equal(actualSpamPenaltyAmount, 0)
@@ -169,16 +178,16 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
             calldata: executionTarget.contract.methods.execute().encodeABI(),
           }
           const script = encodeCallScript([action])
-          await acl.createPermission(rootAccount, timeLockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
+          await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
           await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT, {
-            from: rootAccount,
+            from: appManager,
           })
-          await timeLockForwarder.forward(script, { from: rootAccount })
+          await timeLockForwarder.forward(script, { from: appManager })
         })
 
         it('spam penalty amount and duration increase for second lock', async () => {
           const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-            await timeLockForwarder.getSpamPenalty({ from: rootAccount })
+            await timeLockForwarder.getSpamPenalty({ from: appManager })
           )
 
           assert.equal(actualSpamPenaltyAmount, bigExp(5, decimals).toString())
@@ -186,11 +195,11 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
         })
 
         it('spam penalty amount and duration increase when increasing spam penalty factor', async () => {
-          await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, rootAccount)
+          await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, appManager)
           await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
 
           const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-            await timeLockForwarder.getSpamPenalty({ from: rootAccount })
+            await timeLockForwarder.getSpamPenalty({ from: appManager })
           )
 
           assert.equal(actualSpamPenaltyAmount, bigExp(10, decimals).toString())
@@ -204,7 +213,7 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
       let addressLocks = 0
 
       beforeEach('create execution script', async () => {
-        await acl.createPermission(rootAccount, timeLockForwarder.address, LOCK_TOKENS_ROLE, rootAccount)
+        await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
 
         //create script
         executionTarget = await ExecutionTarget.new()
@@ -217,7 +226,7 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
 
       it('forwards action successfully', async () => {
         await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT, {
-          from: rootAccount,
+          from: appManager,
         })
 
         const expectedCounter = 1
@@ -226,13 +235,13 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
         const expectedNumberOfLocks = addressLocks + 1
         const expectedLockAmount = INITIAL_LOCK_AMOUNT
 
-        await timeLockForwarder.forward(script, { from: rootAccount })
+        await timeLockForwarder.forward(script, { from: appManager })
 
         const actualCounter = await executionTarget.counter()
-        const actualLockerBalance = await mockErc20.balanceOf(rootAccount)
+        const actualLockerBalance = await mockErc20.balanceOf(appManager)
         const actualLockAppBalance = await mockErc20.balanceOf(timeLockForwarder.address)
-        const actualNumberOfLocks = await timeLockForwarder.getWithdrawLocksCount(rootAccount)
-        const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(rootAccount, 0)
+        const actualNumberOfLocks = await timeLockForwarder.getWithdrawLocksCount(appManager)
+        const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(appManager, 0)
 
         //forwarded successfully
         assert.equal(actualCounter, expectedCounter)
@@ -247,40 +256,40 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
       })
 
       it('cannot forward if sender does not approve lock app to transfer tokens', async () => {
-        await assertRevert(timeLockForwarder.forward(script, { from: rootAccount }), 'LOCK_TRANSFER_REVERTED')
+        await assertRevert(timeLockForwarder.forward(script, { from: appManager }), 'LOCK_TRANSFER_REVERTED')
       })
 
       context('account has 1 active lock', async () => {
         beforeEach(async () => {
           await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT, {
-            from: rootAccount,
+            from: appManager,
           })
-          await timeLockForwarder.forward(script, { from: rootAccount })
+          await timeLockForwarder.forward(script, { from: appManager })
         })
 
         it('lock amount increases for second lock', async () => {
           const expectedLockAmount = bigExp(15, decimals)
 
           await mockErc20.approve(timeLockForwarder.address, expectedLockAmount, {
-            from: rootAccount,
+            from: appManager,
           })
-          await timeLockForwarder.forward(script, { from: rootAccount })
+          await timeLockForwarder.forward(script, { from: appManager })
 
-          const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(rootAccount, 1)
+          const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(appManager, 1)
           assert.equal(actualLockAmount, expectedLockAmount.toString())
         })
 
         it('lock amount increases when increasing spam penalty factor', async () => {
-          await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, rootAccount)
+          await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_SPAM_PENALTY_ROLE, appManager)
           await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
           const expectedLockAmount = bigExp(20, decimals)
 
           await mockErc20.approve(timeLockForwarder.address, expectedLockAmount, {
-            from: rootAccount,
+            from: appManager,
           })
-          await timeLockForwarder.forward(script, { from: rootAccount })
+          await timeLockForwarder.forward(script, { from: appManager })
 
-          const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(rootAccount, 1)
+          const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(appManager, 1)
           assert.equal(actualLockAmount, expectedLockAmount.toString())
         })
       })
@@ -291,11 +300,11 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
         beforeEach('Forward actions', async () => {
           await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT.mul(bigExp(10)), {
             //approve more than required
-            from: rootAccount,
+            from: appManager,
           })
 
           for (let i = 0; i < lockCount; i++) {
-            await timeLockForwarder.forward(script, { from: rootAccount })
+            await timeLockForwarder.forward(script, { from: appManager })
           }
         })
 
@@ -303,10 +312,10 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
           const expectedLockCount = lockCount
 
           await timeLockForwarder.withdrawTokens(lockCount, {
-            from: rootAccount,
+            from: appManager,
           })
 
-          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(rootAccount)
+          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(appManager)
           assert.equal(actualLockCount, expectedLockCount)
         })
 
@@ -316,7 +325,7 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
 
         it('withdraws 1 locked token', async () => {
           const locksToWithdraw = 1
-          const addressPrevBalance = await mockErc20.balanceOf(rootAccount)
+          const addressPrevBalance = await mockErc20.balanceOf(appManager)
 
           const expectedLockCount = lockCount - locksToWithdraw
           const expectedBalance = addressPrevBalance.add(INITIAL_LOCK_AMOUNT.mul(bigExp(locksToWithdraw)))
@@ -324,11 +333,11 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
           //increase time
           await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
           await timeLockForwarder.withdrawTokens(locksToWithdraw, {
-            from: rootAccount,
+            from: appManager,
           })
 
-          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(rootAccount)
-          const actualBalance = await mockErc20.balanceOf(rootAccount)
+          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(appManager)
+          const actualBalance = await mockErc20.balanceOf(appManager)
           assert.equal(actualLockCount, expectedLockCount)
           assert.equal(actualBalance, expectedBalance.toString())
         })
@@ -340,13 +349,13 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
           await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION * lockCount + 1)
           await timeLockForwarder.withdrawAllTokens()
 
-          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(rootAccount)
+          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(appManager)
           assert.equal(actualLockCount, expectedLockCount)
         })
 
         describe('change lock duration', async () => {
           beforeEach(async () => {
-            await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_DURATION_ROLE, rootAccount)
+            await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_DURATION_ROLE, appManager)
           })
 
           it("does not change current locks's unlockTime", async () => {
@@ -359,22 +368,22 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
             //current locks's unlockTime is 60
             await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
             await timeLockForwarder.withdrawTokens(locksToWithdraw, {
-              from: rootAccount,
+              from: appManager,
             })
 
-            const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(rootAccount)
+            const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(appManager)
             assert.equal(actualLockCount, expectedLockCount)
           })
         })
 
         describe('change lock amount', async () => {
           beforeEach(async () => {
-            await acl.createPermission(rootAccount, timeLockForwarder.address, CHANGE_AMOUNT_ROLE, rootAccount)
+            await acl.createPermission(appManager, timeLockForwarder.address, CHANGE_AMOUNT_ROLE, appManager)
           })
 
           it("does not change current locks's lockAmount", async () => {
             const locksToWithdraw = 1
-            const previousBalance = await mockErc20.balanceOf(rootAccount)
+            const previousBalance = await mockErc20.balanceOf(appManager)
             const newLockAmount = bigExp(20, decimals)
 
             const expectedBalance = previousBalance.add(INITIAL_LOCK_AMOUNT)
@@ -383,11 +392,95 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
             //current locks's lockAmount is 10
             await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
             await timeLockForwarder.withdrawTokens(locksToWithdraw, {
-              from: rootAccount,
+              from: appManager,
             })
 
-            const actualBalance = await mockErc20.balanceOf(rootAccount)
+            const actualBalance = await mockErc20.balanceOf(appManager)
             assert.equal(actualBalance, expectedBalance.toString())
+          })
+        })
+      })
+    })
+
+    describe('integration tests with token balance oracle', () => {
+      let oracleBase, oracle
+      let SET_MIN_BALANCE_ROLE
+
+      const ORACLE_PARAM_ID = new BN(203).shln(248)
+      const EQ = new BN(1).shln(240)
+
+      let INITIAL_MININUM_BALANCE = bigExp(1000, decimals)
+
+      beforeEach('deploy oracle and set permissions', async () => {
+        oracleBase = await Oracle.new()
+        SET_MIN_BALANCE_ROLE = await oracleBase.SET_MIN_BALANCE_ROLE()
+
+        const newOracleReceipt = await dao.newAppInstance(
+          nameHash('token-balance-oracle.aragonpm.test'),
+          oracleBase.address,
+          '0x',
+          false,
+          {
+            from: appManager,
+          }
+        )
+        oracle = await Oracle.at(deployedContract(newOracleReceipt))
+
+        const oracleToken = await MockErc20.new(accountBal1000, bigExp(1500, decimals))
+        oracleToken.transfer(accountBal500, bigExp(500, decimals), { from : accountBal1000 })
+        await oracle.initialize(oracleToken.address, INITIAL_MININUM_BALANCE)
+
+        //convert oracle address to BN and get param256: [(uint256(ORACLE_PARAM_ID) << 248) + (uint256(EQ) << 240) + oracleAddress];
+        const oracleAddressBN = new BN(oracle.address.slice(2), 16)
+        const params = [ORACLE_PARAM_ID.add(EQ).add(oracleAddressBN)]
+
+        await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
+        await acl.grantPermissionP(accountBal1000, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
+        await acl.grantPermissionP(accountBal500, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
+        await acl.grantPermissionP(accountNoBalance, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
+      })
+
+      describe('canForward(address _sender, bytes', async () => {
+        it('can forward action if account has tokens', async () => {
+          assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
+          
+        })
+
+        it('cannot forward action if account does not have minimum required balance', async () => {
+          assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
+        })
+        
+        it('cannot forward action if account does not have tokens', async () => {
+          assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
+        })
+
+        context('minimum required balance set to 500', () => {
+          beforeEach('set minimum required balance to 500', async () => {
+            await acl.createPermission(appManager, oracle.address, SET_MIN_BALANCE_ROLE, appManager)
+            await oracle.setMinBalance(bigExp(500, decimals))
+          })
+
+          it('can forward action if account has tokens', async () => {
+            assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
+            assert.isTrue(await timeLockForwarder.canForward(accountBal500, '0x'))
+            
+          })
+  
+          it('cannot forward action if account does not have tokens', async () => {
+            assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
+          })
+        })
+
+        context('minimum required balance set to 2000', () => {
+          beforeEach('set minimum required balance to 2000', async () => {
+            await acl.createPermission(appManager, oracle.address, SET_MIN_BALANCE_ROLE, appManager)
+            await oracle.setMinBalance(bigExp(2000, decimals))
+          })
+  
+          it('cannot forward action if account does not have required minimum balance', async () => {
+            assert.isFalse(await timeLockForwarder.canForward(accountBal1000, '0x'))
+            assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
+            assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
           })
         })
       })
@@ -396,7 +489,7 @@ contract('TimeLock', ([appManager, rootAccount, ...accounts]) => {
 
   describe('app not initialized', () => {
     it('reverts on forwarding', async () => {
-      await assertRevert(timeLockForwarder.forward('0x', { from: rootAccount }), 'LOCK_CAN_NOT_FORWARD')
+      await assertRevert(timeLockForwarder.forward('0x', { from: appManager }), 'LOCK_CAN_NOT_FORWARD')
     })
 
     it('reverts on changing duration', async () => {

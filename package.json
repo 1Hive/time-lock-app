@@ -32,6 +32,7 @@
   "keywords": [],
   "description": "",
   "devDependencies": {
+    "@1hive/oracle-token-balance": "^1.0.0",
     "@aragon/apps-finance": "^3.0.0",
     "@aragon/apps-shared-minime": "1.0.0",
     "@aragon/apps-token-manager": "^2.1.0",
@@ -52,6 +53,7 @@
     "eslint-plugin-react": "^7.12.4",
     "eslint-plugin-react-hooks": "^1.6.0",
     "eslint-plugin-standard": "^4.0.0",
+    "eth-ens-namehash": "^2.0.8",
     "ethlint": "^1.2.3",
     "ganache-cli": "^6.0.0",
     "prettier": "^1.17.1",
