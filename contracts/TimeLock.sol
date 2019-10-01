@@ -168,7 +168,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
 
     /**
     * @notice Get the amount and duration penalty based on the number of current locks `msg.sender` has
-    * @dev Potential griefing issue is considered acceptable. In this case a user would just have to wait and withdraw()
+    * @dev Potential out of gas issue is considered acceptable. In this case a user would just have to wait and withdraw()
     *      some tokens before this function and forward() could be called again.
     * @return amount penalty
     * @return duration penalty
