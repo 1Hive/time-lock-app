@@ -184,9 +184,9 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         }
 
         uint256 totalAmount = lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE);
-        uint256 totalPenalty = lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE);
+        uint256 totalDuration = lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE);
 
-        return (totalAmount, totalPenalty);
+        return (totalAmount, totalDuration);
     }
 
     function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {
