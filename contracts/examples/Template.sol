@@ -20,7 +20,6 @@ import "@aragon/apps-voting/contracts/Voting.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
-import "./Oracle.sol";
 import "../TimeLock.sol";
 
 contract TemplateBase is APMNamehash {
@@ -68,9 +67,6 @@ contract Template is TemplateBase {
     uint64 constant PCT = 10 ** 16;
     address constant ANY_ENTITY = address(-1);
 
-    uint8 constant ORACLE_PARAM_ID = 203;
-    enum Op { NONE, EQ, NEQ, GT, LT, GTE, LTE, RET, NOT, AND, OR, XOR, IF_ELSE } // op types
-
     bytes32 internal TIME_LOCK_APP_ID = keccak256(abi.encodePacked(apmNamehash("open"), keccak256("time-lock")));
     bytes32 internal TOKEN_MANAGER_APP_ID = apmNamehash("token-manager");
     bytes32 internal VAULT_APP_ID = apmNamehash("vault");
@@ -89,7 +85,6 @@ contract Template is TemplateBase {
         acl.createPermission(this, dao, dao.APP_MANAGER_ROLE(), this);
 
         TimeLock timeLock = TimeLock(installApp(dao, TIME_LOCK_APP_ID));
-        Oracle oracle = new Oracle();
         TokenManager tokenManager = TokenManager(installApp(dao, TOKEN_MANAGER_APP_ID));
         Vault vault = Vault(installDefaultApp(dao, VAULT_APP_ID));
         Voting voting = Voting(installApp(dao, VOTING_APP_ID));
@@ -117,10 +112,8 @@ contract Template is TemplateBase {
         acl.createPermission(root, timeLock, timeLock.CHANGE_AMOUNT_ROLE(), voting);
         acl.createPermission(root, timeLock, timeLock.CHANGE_SPAM_PENALTY_ROLE(), voting);
 
-        acl.createPermission(this, timeLock, timeLock.LOCK_TOKENS_ROLE(), this);
-        // creating param for Token balance Oracle
-        setOracle(acl, ANY_ENTITY, timeLock, timeLock.LOCK_TOKENS_ROLE(), oracle);
-
+        acl.createPermission(root, timeLock, timeLock.LOCK_TOKENS_ROLE(), voting);
+        
         // Clean up permissions
         acl.grantPermission(root, dao, dao.APP_MANAGER_ROLE());
         acl.revokePermission(this, dao, dao.APP_MANAGER_ROLE());
@@ -134,20 +127,7 @@ contract Template is TemplateBase {
         acl.revokePermission(this, tokenManager, tokenManager.MINT_ROLE());
         acl.setPermissionManager(root, tokenManager, tokenManager.MINT_ROLE());
 
-        acl.revokePermission(this, timeLock, timeLock.LOCK_TOKENS_ROLE());
-        acl.setPermissionManager(root, timeLock, timeLock.LOCK_TOKENS_ROLE());
-
         emit DeployInstance(dao);
 
-    }
-
-    function setOracle(ACL acl, address who, address where, bytes32 what, address oracle) internal {
-        uint256[] memory params = new uint256[](1);
-        params[0] = paramsTo256(ORACLE_PARAM_ID, uint8(Op.EQ), uint240(oracle));
-        acl.grantPermissionP(who, where, what, params);
-    }
-
-    function paramsTo256(uint8 id,uint8 op, uint240 value) internal returns (uint256) {
-        return (uint256(id) << 248) + (uint256(op) << 240) + value;
     }
 }
