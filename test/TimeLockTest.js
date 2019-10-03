@@ -49,6 +49,12 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
     mockErc20 = await MockErc20.new(rootAccount, MOCK_TOKEN_BALANCE)
   })
 
+  it("initialize() reverts when passed non-contract address as token", async () => {
+    await assertRevert(
+      timeLockForwarder.initialize(rootAccount, INITIAL_LOCK_DURATION, INITIAL_LOCK_AMOUNT, INITIAL_SPAM_PENALTY_FACTOR),
+      "TIME_LOCK_NOT_CONTRACT")
+  })
+
   describe('initialize(address _token, uint256 _lockDuration, uint256 _lockAmount)', () => {
     beforeEach('initialize time-lock-app', async () => {
       await timeLockForwarder.initialize(
@@ -346,7 +352,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
       it('cannot forward if sender does not approve lock app to transfer tokens', async () => {
         await assertRevert(
           timeLockForwarder.forward(script, { from: rootAccount }),
-          'LOCK_TRANSFER_REVERTED'
+          'TIME_LOCK_TRANSFER_REVERTED'
         )
       })
 
@@ -440,7 +446,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
         it("can't withdraw more than locked", async () => {
           await assertRevert(
             timeLockForwarder.withdrawTokens(lockCount + 1),
-            'LOCK_TOO_MANY_WITHDRAW_LOCKS'
+            'TIME_LOCK_TOO_MANY_WITHDRAW_LOCKS'
           )
         })
 
@@ -549,7 +555,7 @@ contract('TimeLock', ([rootAccount, ...accounts]) => {
     it('reverts on forwarding', async () => {
       await assertRevert(
         timeLockForwarder.forward('0x', { from: rootAccount }),
-        'LOCK_CAN_NOT_FORWARD'
+        'TIME_LOCK_CAN_NOT_FORWARD'
       )
     })
 
