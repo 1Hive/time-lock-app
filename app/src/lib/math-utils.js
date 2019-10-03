@@ -14,16 +14,9 @@ export function formatDecimals(value, digits) {
   }
 }
 
-export function formatTokenAmount(
-  amount,
-  isIncoming,
-  decimals = 0,
-  displaySign = false,
-  { rounding = 2 } = {}
-) {
+export function formatTokenAmount(amount, isIncoming, decimals = 0, displaySign = false, { rounding = 2 } = {}) {
   return (
-    (displaySign ? (isIncoming ? '+' : '-') : '') +
-    formatDecimals(round(amount / Math.pow(10, decimals), rounding), 18)
+    (displaySign ? (isIncoming ? '+' : '-') : '') + formatDecimals(round(amount / Math.pow(10, decimals), rounding), 18)
   )
 }
 
@@ -133,13 +126,12 @@ export function toHours(ms) {
  * @returns {string} formatted time
  */
 export function formatTime(time) {
+  const units = ['d', 'h', 'm', 's']
 
-  const units = ['h', 'm', 's']
-  const hours = Math.floor(time / 3600)
-  const minutes = Math.floor((time % 3600) / 60)
-  const seconds = (time % 3600) % 60
+  const days = Math.floor(time / 86400)
+  const hours = Math.floor((time % 86400) / 3600)
+  const minutes = Math.floor(((time % 86400) % 3600) / 60)
+  const seconds = ((time % 86400) % 3600) % 60
 
-  return [hours, minutes, seconds].map((elem, index) =>
-    elem > 0 ? `${elem}${units[index]} ` : ''
-  )
+  return [days, hours, minutes, seconds].map((elem, index) => (elem > 0 ? `${elem}${units[index]} ` : ''))
 }
