@@ -7,10 +7,10 @@ function appStateReducer(state) {
   if (!ready) {
     return { ...state, ready }
   }
-  
-  const { locks, token, lockAmount, spamPenaltyFactor, pctBase } = state
 
-  const pctBaseNum = parseInt(pctBase,10)
+  const { locks, lockAmount, spamPenaltyFactor, pctBase } = state
+
+  const pctBaseNum = parseInt(pctBase, 10)
 
   return {
     ...state,
@@ -21,8 +21,8 @@ function appStateReducer(state) {
     pctBase: new BN(pctBase),
 
     numData: {
-      spamPenaltyFactor: parseInt(spamPenaltyFactor,10) / pctBaseNum,
-      pctBase: pctBaseNum
+      spamPenaltyFactor: parseInt(spamPenaltyFactor, 10) / pctBaseNum,
+      pctBase: pctBaseNum,
     },
 
     locks: locks
