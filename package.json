@@ -32,7 +32,7 @@
   "keywords": [],
   "description": "",
   "devDependencies": {
-    "@1hive/oracle-token-balance": "^1.0.0",
+    "@1hive/oracle-token-balance": "^2.0.0",
     "@aragon/apps-finance": "^3.0.0",
     "@aragon/apps-shared-minime": "1.0.0",
     "@aragon/apps-token-manager": "^2.1.0",

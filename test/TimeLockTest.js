@@ -12,6 +12,7 @@ const BN = require('bn.js')
 const bigExp = (x, y = 0) => new BN(x).mul(new BN(10).pow(new BN(y)))
 const pct16 = x => bigExp(x, 16)
 const decimals = 18
+const ANY_ADDR = '0x'.padEnd(42, 'f')
 
 contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalance, ...accounts]) => {
   let timeLockBase, timeLockForwarder, mockErc20
@@ -409,7 +410,8 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
       const ORACLE_PARAM_ID = new BN(203).shln(248)
       const EQ = new BN(1).shln(240)
 
-      let INITIAL_MININUM_BALANCE = bigExp(1000, decimals)
+      const totalSupply = bigExp(1500, decimals)
+      const INITIAL_MININUM_BALANCE = bigExp(1000, decimals)
 
       beforeEach('deploy oracle and set permissions', async () => {
         oracleBase = await Oracle.new()
@@ -426,8 +428,8 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         )
         oracle = await Oracle.at(deployedContract(newOracleReceipt))
 
-        const oracleToken = await MockErc20.new(accountBal1000, bigExp(1500, decimals))
-        oracleToken.transfer(accountBal500, bigExp(500, decimals), { from : accountBal1000 })
+        const oracleToken = await MockErc20.new(accountBal1000, totalSupply)
+        oracleToken.transfer(accountBal500, totalSupply.sub(INITIAL_MININUM_BALANCE), { from: accountBal1000 })
         await oracle.initialize(oracleToken.address, INITIAL_MININUM_BALANCE)
 
         //convert oracle address to BN and get param256: [(uint256(ORACLE_PARAM_ID) << 248) + (uint256(EQ) << 240) + oracleAddress];
@@ -435,21 +437,18 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         const params = [ORACLE_PARAM_ID.add(EQ).add(oracleAddressBN)]
 
         await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
-        await acl.grantPermissionP(accountBal1000, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
-        await acl.grantPermissionP(accountBal500, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
-        await acl.grantPermissionP(accountNoBalance, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
+        await acl.grantPermissionP(ANY_ADDR, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
       })
 
       describe('canForward(address _sender, bytes', async () => {
         it('can forward action if account has tokens', async () => {
           assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
-          
         })
 
         it('cannot forward action if account does not have minimum required balance', async () => {
           assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
         })
-        
+
         it('cannot forward action if account does not have tokens', async () => {
           assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
         })
@@ -463,9 +462,8 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           it('can forward action if account has tokens', async () => {
             assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
             assert.isTrue(await timeLockForwarder.canForward(accountBal500, '0x'))
-            
           })
-  
+
           it('cannot forward action if account does not have tokens', async () => {
             assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
           })
@@ -476,7 +474,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
             await acl.createPermission(appManager, oracle.address, SET_MIN_BALANCE_ROLE, appManager)
             await oracle.setMinBalance(bigExp(2000, decimals))
           })
-  
+
           it('cannot forward action if account does not have required minimum balance', async () => {
             assert.isFalse(await timeLockForwarder.canForward(accountBal1000, '0x'))
             assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
