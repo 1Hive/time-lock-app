@@ -4,9 +4,10 @@
   "main": "index.js",
   "scripts": {
     "start": "npm run start:template",
-    "start:template": "aragon run --template Template --template-init @ARAGON_ENS --files dist",
+    "start:template": "aragon run --template Template --template-init @ARAGON_ENS --files dist --template-args false --block-time 1",
+    "start:template:oracle": "aragon run --template Template --template-init @ARAGON_ENS --files dist --template-args true --block-time 1",
     "start:http": "npm run start:http:template",
-    "start:http:template": "aragon run --http localhost:8001 --http-served-from ./dist --template Template --template-init @ARAGON_ENS",
+    "start:http:template": "aragon run --http localhost:8001 --http-served-from ./dist --template Template --template-init @ARAGON_ENS --block-time 1",
     "build": "cd app && npm run build && cd ..",
     "prepare": "cd app && npm install && cd ..",
     "start:app": "cd app && npm start && cd ..",
