@@ -69,7 +69,6 @@ contract Template is TemplateBase {
 
     bytes32 internal TIME_LOCK_APP_ID = keccak256(abi.encodePacked(apmNamehash("open"), keccak256("time-lock")));
     bytes32 internal TOKEN_MANAGER_APP_ID = apmNamehash("token-manager");
-    bytes32 internal VAULT_APP_ID = apmNamehash("vault");
     bytes32 internal VOTING_APP_ID = apmNamehash("voting");
 
     MiniMeTokenFactory tokenFactory;
@@ -86,7 +85,6 @@ contract Template is TemplateBase {
 
         TimeLock timeLock = TimeLock(installApp(dao, TIME_LOCK_APP_ID));
         TokenManager tokenManager = TokenManager(installApp(dao, TOKEN_MANAGER_APP_ID));
-        Vault vault = Vault(installDefaultApp(dao, VAULT_APP_ID));
         Voting voting = Voting(installApp(dao, VOTING_APP_ID));
 
         MiniMeToken lockToken = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Lock token", 18, "LKT", true);
@@ -97,7 +95,6 @@ contract Template is TemplateBase {
         token.changeController(tokenManager);
 
         // Initialize apps
-        vault.initialize();
         timeLock.initialize(ERC20(lockToken), 90, 20e18, 100 * PCT);
         tokenManager.initialize(token, true, 0);
         voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
@@ -111,9 +108,8 @@ contract Template is TemplateBase {
         acl.createPermission(root, timeLock, timeLock.CHANGE_DURATION_ROLE(), voting);
         acl.createPermission(root, timeLock, timeLock.CHANGE_AMOUNT_ROLE(), voting);
         acl.createPermission(root, timeLock, timeLock.CHANGE_SPAM_PENALTY_ROLE(), voting);
+        acl.createPermission(root, timeLock, timeLock.LOCK_TOKENS_ROLE(), root);
 
-        acl.createPermission(root, timeLock, timeLock.LOCK_TOKENS_ROLE(), voting);
-        
         // Clean up permissions
         acl.grantPermission(root, dao, dao.APP_MANAGER_ROLE());
         acl.revokePermission(this, dao, dao.APP_MANAGER_ROLE());
