@@ -72,6 +72,8 @@ const checkOracle = async address => {
     const oracle = await TokenBalanceOracle.at(address)
     await oracle.minBalance()
   } catch (err) {
-    throw `Error checking oracle: ${err}\n${info('Make sure the provided address is a Token balance oracle')}`
+    throw new Error(
+      `Error checking oracle: ${err}\n${info('Make sure the provided address is a Token balance oracle')}`
+    )
   }
 }
