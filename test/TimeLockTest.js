@@ -4,7 +4,7 @@ const MockErc20 = artifacts.require('TokenMock')
 const Oracle = artifacts.require('TokenBalanceOracle')
 
 const { encodeCallScript } = require('@aragon/test-helpers/evmScript')
-const deployDAO = require('./helpers/deployDao')
+const deployDAO = require('./helpers/deployDAO')
 const { assertRevert, deployedContract } = require('./helpers/helpers')
 const { hash: nameHash } = require('eth-ens-namehash')
 const BN = require('bn.js')
@@ -22,7 +22,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
   const INITIAL_LOCK_AMOUNT = bigExp(10, decimals)
   const INITIAL_LOCK_DURATION = 60 // seconds
   const INITIAL_SPAM_PENALTY_FACTOR = pct16(50) // 50%
-
+ 
   before('deploy base apps', async () => {
     timeLockBase = await TimeLock.new()
     CHANGE_DURATION_ROLE = await timeLockBase.CHANGE_DURATION_ROLE()
