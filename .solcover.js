@@ -1,5 +1,5 @@
 module.exports = {
   norpc: true,
-  copyPackages: ['@aragon/'],
+  copyPackages: ['@aragon/', '@1hive'],
   skipFiles: ['examples', 'test', 'lib', 'misc'],
 }
