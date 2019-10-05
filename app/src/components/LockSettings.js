@@ -9,7 +9,6 @@ function LockSettings({
   duration,
   amount,
   spamPenaltyFactor,
-  pctBase,
   tokenAddress,
   tokenName,
   tokenSymbol,
@@ -36,7 +35,7 @@ function LockSettings({
           </InfoRow>
           <InfoRow>
             <Text>Spam penalty</Text>
-            <Duration>{round(spamPenaltyFactor * 100)} %</Duration>
+            <Text>{round(spamPenaltyFactor * 100)} %</Text>
           </InfoRow>
         </ul>
       </Box>

@@ -50,6 +50,12 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
     mockErc20 = await MockErc20.new(appManager, MOCK_TOKEN_BALANCE)
   })
 
+  it("initialize() reverts when passed non-contract address as token", async () => {
+    await assertRevert(
+      timeLockForwarder.initialize(rootAccount, INITIAL_LOCK_DURATION, INITIAL_LOCK_AMOUNT, INITIAL_SPAM_PENALTY_FACTOR),
+      "TIME_LOCK_NOT_CONTRACT")
+  })
+
   describe('initialize(address _token, uint256 _lockDuration, uint256 _lockAmount)', () => {
     beforeEach('initialize time-lock-app', async () => {
       await timeLockForwarder.initialize(
@@ -257,7 +263,10 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
       })
 
       it('cannot forward if sender does not approve lock app to transfer tokens', async () => {
-        await assertRevert(timeLockForwarder.forward(script, { from: appManager }), 'LOCK_TRANSFER_REVERTED')
+        await assertRevert(
+          timeLockForwarder.forward(script, { from: appManager }),
+          'TIME_LOCK_TRANSFER_REVERTED'
+        )
       })
 
       context('account has 1 active lock', async () => {
@@ -321,7 +330,10 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         })
 
         it("can't withdraw more than locked", async () => {
-          await assertRevert(timeLockForwarder.withdrawTokens(lockCount + 1), 'LOCK_TOO_MANY_WITHDRAW_LOCKS')
+          await assertRevert(
+            timeLockForwarder.withdrawTokens(lockCount + 1),
+            'TIME_LOCK_TOO_MANY_WITHDRAW_LOCKS'
+          )
         })
 
         it('withdraws 1 locked token', async () => {
@@ -487,7 +499,10 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
 
   describe('app not initialized', () => {
     it('reverts on forwarding', async () => {
-      await assertRevert(timeLockForwarder.forward('0x', { from: appManager }), 'LOCK_CAN_NOT_FORWARD')
+      await assertRevert(
+        timeLockForwarder.forward('0x', { from: appManager }),
+        'TIME_LOCK_CAN_NOT_FORWARD'
+      )
     })
 
     it('reverts on changing duration', async () => {
