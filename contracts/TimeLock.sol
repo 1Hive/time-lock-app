@@ -135,7 +135,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     * @return True if _sender has LOCK_TOKENS_ROLE role
     */
     function canForward(address _sender, bytes) public view returns (bool) {
-        return canPerform(_sender, LOCK_TOKENS_ROLE, arr());
+        return canPerform(_sender, LOCK_TOKENS_ROLE, arr(_sender));
     }
 
     /**
