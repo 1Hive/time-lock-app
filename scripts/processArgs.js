@@ -14,7 +14,7 @@ module.exports = async () => {
   const args = process.argv.slice(4)
   const [daoAddress, timeLockAddress, oracleAddress] = args
 
-  //as the `dao acl grant doesn't perform any check if the oracle address is in fact a contract we perform a minimum check ourselves`
+  //as the `dao acl grant` doesn't perform any check if the oracle address is in fact a contract, we perform a minimum check ourselves`
   await checkOracle(oracleAddress)
   const param = [ID, OP, oracleAddress]
 
