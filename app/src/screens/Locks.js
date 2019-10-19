@@ -18,13 +18,7 @@ const Locks = React.memo(({ locks }) => {
 
   return (
     <Split
-      primary={
-        <LockTable
-          locks={locks}
-          tokenSymbol={tokenSymbol}
-          tokenDecimals={tokenDecimals}
-        />
-      }
+      primary={<LockTable locks={locks} tokenSymbol={tokenSymbol} tokenDecimals={tokenDecimals} />}
       secondary={
         <InfoBoxes
           amount={lockAmount}

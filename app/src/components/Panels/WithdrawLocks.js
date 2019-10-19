@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useReducer, useEffect, useCallback, useRef } from 'react'
 import styled from 'styled-components'
 
 import { Button, TextInput, Text, Field, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
 import { InfoMessage } from '../Message'
 
-import { reduceTotal } from '../../lib/lock-utils'
+import { reduceTotal, lockReducer } from '../../lib/lock-utils'
 import { formatTokenAmount } from '../../lib/math-utils'
 
 const useUnlocked = locks => locks.filter(l => l.unlocked)
@@ -25,7 +25,7 @@ const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
   const inputRef = useRef(null)
   useEffect(() => {
     panelOpened ? inputRef.current.focus() : setCount(0)
-  }, [panelOpened])
+  }, [panelOpened, setCount])
 
   const handleFormSubmit = useCallback(
     e => {
@@ -39,9 +39,9 @@ const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
     <form onSubmit={handleFormSubmit}>
       <InfoMessage
         title={'Lock action'}
-        text={`This action will withdraw the ${
-          count.value == 1 ? '' : count.value
-        } oldest lock${count.value == 1 ? '' : 's'}`}
+        text={`This action will withdraw the ${count.value === 1 ? '' : count.value} oldest lock${
+          count.value === 1 ? '' : 's'
+        }`}
       />
       <Row>
         <Split
@@ -85,7 +85,7 @@ const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
         </Field>
         <Max onClick={() => setCount(count.max)}>Max</Max>
       </Row>
-      <Button type="submit" mode="strong" wide={true} disabled={count.max <= 0}>
+      <Button type="submit" mode="strong" wide disabled={count.max <= 0}>
         Withdraw
       </Button>
     </form>
@@ -93,20 +93,23 @@ const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
 })
 
 function useCount(unlocked) {
-  const [count, setCount] = useState({ value: 0, max: unlocked })
+  const [count, dispatch] = useReducer(lockReducer, { value: 0, max: unlocked })
+  console.log(count)
 
   // When the number of unlocked changes => Update max
   useEffect(() => {
-    setCount({ ...count, max: unlocked })
+    dispatch({ type: 'SET_MAX', max: unlocked })
   }, [unlocked])
 
   // We use only one function for all cases the count can change
   const handleCountChange = useCallback(
     newValue => {
       const value = newValue.target ? newValue.target.value : newValue
-      if (value <= count.max) setCount({ ...count, value })
+      if (value <= count.max) {
+        dispatch({ type: 'SET_COUNT', value })
+      }
     },
-    [count]
+    [count.max]
   )
 
   return [count, handleCountChange]

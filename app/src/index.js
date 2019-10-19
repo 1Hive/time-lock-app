@@ -5,7 +5,6 @@ import App from './App'
 
 import appStateReducer from './app-state-reducer'
 
-
 ReactDOM.render(
   <AragonApi reducer={appStateReducer}>
     <App />

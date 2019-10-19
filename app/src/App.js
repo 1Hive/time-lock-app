@@ -17,10 +17,7 @@ function App() {
         <SyncIndicator visible={isSyncing} />
         <Header
           primary={
-            <Title
-              text="Time Lock"
-              after={tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>}
-            />
+            <Title text="Time Lock" after={tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>} />
           }
           secondary={
             !!locks.length && (

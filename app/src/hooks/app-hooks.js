@@ -17,7 +17,7 @@ function useLocks() {
         ...lock,
         unlocked: lockStatus[index],
       })),
-    [locks, lockStatusKey]
+    [locks, lockStatusKey] // eslint-disable-line react-hooks/exhaustive-deps
   )
 }
 

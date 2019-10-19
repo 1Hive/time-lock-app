@@ -27,23 +27,17 @@ const renderUnlockTime = unlockTime => {
 }
 
 const LockTable = React.memo(({ locks, tokenSymbol, tokenDecimals }) => {
-  const { totalUnlocked, locked, totalLocked } = useLocks(locks)
+  const { totalUnlocked, locked } = useLocks(locks)
 
   return (
     <>
-      <Balance
-        total={totalUnlocked}
-        tokenDecimals={tokenDecimals}
-        tokenSymbol={tokenSymbol}
-      />
+      <Balance total={totalUnlocked} tokenDecimals={tokenDecimals} tokenSymbol={tokenSymbol} />
       {locked.length > 0 ? (
         <DataView
           fields={['Amount', 'Unlocks in']}
           entries={locked.map(l => [l.lockAmount, l.unlockTime])}
           renderEntry={([amount, unlockTime]) => [
-            <Text>
-              {`${formatTokenAmount(amount, false, tokenDecimals)} ${tokenSymbol}`}
-            </Text>,
+            <Text>{`${formatTokenAmount(amount, false, tokenDecimals)} ${tokenSymbol}`}</Text>,
             renderUnlockTime(unlockTime),
           ]}
           mode="table"
