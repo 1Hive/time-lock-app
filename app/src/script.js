@@ -58,7 +58,7 @@ async function createStore(tokenContract) {
       }
     },
     {
-      init: initializeState({}, tokenContract),
+      init: initializeState(tokenContract),
     }
   )
 }
