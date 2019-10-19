@@ -12,7 +12,9 @@ retryEvery(() =>
   app
     .call('token')
     .subscribe(initialize, err =>
-      console.error(`Could not start background script execution due to the contract not loading token: ${err}`)
+      console.error(
+        `Could not start background script execution due to the contract not loading token: ${err}`
+      )
     )
 )
 
@@ -26,8 +28,8 @@ async function createStore(tokenContract) {
 
   return app.store(
     (state, { event, returnValues, blockNumber }) => {
-      //dont want to listen for past events for now
-      //(our app state can be obtained from smart contract vars)
+      // dont want to listen for past events for now
+      // (our app state can be obtained from smart contract vars)
       if (blockNumber && blockNumber <= currentBlock) return state
 
       let nextState = {
@@ -67,14 +69,13 @@ async function createStore(tokenContract) {
  *                     *
  ***********************/
 
-function initializeState(state, tokenContract) {
+function initializeState(tokenContract) {
   return async cachedState => {
     let token = await getTokenData(tokenContract)
     token && app.indentify(`Lock ${token.tokenSymbol}`)
 
     return {
       ...cachedState,
-      ...state,
       ...token,
       ...(await getLockSettings()),
       isSyncing: true,
@@ -87,7 +88,9 @@ async function updateConnectedAccount(state, { account }) {
   const locks = []
 
   for (let i = 0; i < lockCount; i++) {
-    let { unlockTime, lockAmount } = await app.call('addressesWithdrawLocks', account, i).toPromise()
+    let { unlockTime, lockAmount } = await app
+      .call('addressesWithdrawLocks', account, i)
+      .toPromise()
     locks.push({ unlockTime: marshallDate(unlockTime), lockAmount })
   }
 
@@ -122,7 +125,7 @@ async function updateSpamPenaltyFactor(state, { newSpamPenaltyFactor }) {
 async function newLock(state, { lockAddress, unlockTime, lockAmount }) {
   const { account, locks } = state
 
-  //skip if no connected account or new lock doesn't correspond to connected account
+  // skip if no connected account or new lock doesn't correspond to connected account
   if (!(account && addressesEqual(lockAddress, account))) return state
 
   return {
@@ -134,7 +137,7 @@ async function newLock(state, { lockAddress, unlockTime, lockAmount }) {
 async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) {
   const { account, locks } = state
 
-  //skip if no connected account or new withdrawl doesn't correspond to connected account
+  // skip if no connected account or new withdrawl doesn't correspond to connected account
   if (!(account && addressesEqual(withdrawalAddress, account))) return state
 
   return {
@@ -151,7 +154,7 @@ async function newWithdrawal(state, { withdrawalAddress, withdrawalLockCount }) 
 
 async function getTokenData(contract) {
   try {
-    //TODO: check for contracts that use bytes32 as symbol() return value (same for name)
+    // TODO: check for contracts that use bytes32 as symbol() return value (same for name)
     const [tokenName, tokenSymbol, tokenDecimals] = await Promise.all([
       contract.name().toPromise(),
       contract.symbol().toPromise(),

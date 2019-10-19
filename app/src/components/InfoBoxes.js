@@ -1,7 +1,6 @@
 import React from 'react'
-import styled from 'styled-components'
 
-import { Text, Box, IconAttention, useTheme, GU } from '@aragon/ui'
+import { Box, useTheme } from '@aragon/ui'
 import { useNetwork } from '@aragon/api-react'
 
 import LockSettings from './LockSettings'
@@ -15,27 +14,10 @@ const InfoBoxes = React.memo(props => {
       <Box heading="Lock info">
         <LockSettings {...props} />
       </Box>
-
-      <InfoAlert
-        text={
-          <Wrap>
-            {' '}
-            <IconAttention
-              css={`
-                margin-right: ${GU}px;
-              `}
-            />{' '}
-            <span>You can withdraw your tokens once they unlock</span>
-          </Wrap>
-        }
-      />
+      <InfoAlert text="You can withdraw your tokens once they unlock" />
     </>
   )
 })
-
-const Wrap = styled.div`
-  display: flex;
-`
 
 export default props => {
   const network = useNetwork()

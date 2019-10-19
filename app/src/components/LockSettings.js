@@ -21,11 +21,7 @@ function LockSettings({
         ['Duration', <Text>{formatTime(Math.round(duration / 1000))}</Text>],
         [
           'Amount',
-          <Text>{`${formatTokenAmount(
-            amount,
-            false,
-            tokenDecimals
-          )} ${tokenSymbol}`}</Text>,
+          <Text>{`${formatTokenAmount(amount, false, tokenDecimals)} ${tokenSymbol}`}</Text>,
         ],
         [
           'Token',

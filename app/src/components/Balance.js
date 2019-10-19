@@ -10,11 +10,7 @@ function Balance({ theme, below, total, tokenDecimals, tokenSymbol }) {
   } ${tokenSymbol}`
 
   return (
-    <BoxPad
-      borderColor={String(theme.positive)}
-      belowMedium={below('medium')}
-      unlocked={total > 0}
-    >
+    <BoxPad borderColor={String(theme.positive)} belowMedium={below('medium')} unlocked={total > 0}>
       <Wrap>
         <Text>Unlocked balance:</Text>
         <Text
