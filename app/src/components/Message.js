@@ -1,28 +1,18 @@
 import React from 'react'
-import { Info, Text, IconCross } from '@aragon/ui'
-import styled from 'styled-components'
-
-const Message = styled.div`
-  margin-top: 1rem;
-`
+import { Info } from '@aragon/ui'
 
 export const InfoMessage = ({ title, text }) => {
   return (
     <div style={{ margin: '1rem 0' }}>
-      <Info.Action title={title} mode="info">
-        {text}
-      </Info.Action>
+      <Info.Action title={title}>{text}</Info.Action>
     </div>
   )
 }
 
-export const ErrorMessage = ({ message }) => (
-  <Message>
-    <p>
-      <IconCross />
-      <Text size="small" style={{ marginLeft: '10px' }}>
-        {message}
-      </Text>
-    </p>
-  </Message>
-)
+export const InfoAlert = ({ title, text }) => {
+  return (
+    <div style={{ margin: '1rem 0' }}>
+      <Info.Alert title={title}>{text}</Info.Alert>
+    </div>
+  )
+}

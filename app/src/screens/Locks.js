@@ -1,13 +1,11 @@
 import React from 'react'
-import PropTypes from 'prop-types'
-import { Split, Box } from '@aragon/ui'
+import { Split } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
-import styled from 'styled-components'
 
 import LockTable from '../components/LockTable'
-import LockSettings from '../components/LockSettings'
+import InfoBoxes from '../components/InfoBoxes'
 
-function Locks({ locks }) {
+const Locks = React.memo(({ locks }) => {
   const {
     lockAmount,
     lockDuration,
@@ -20,9 +18,15 @@ function Locks({ locks }) {
 
   return (
     <Split
-      primary={<LockTable locks={locks} tokenSymbol={tokenSymbol} tokenDecimals={tokenDecimals} />}
+      primary={
+        <LockTable
+          locks={locks}
+          tokenSymbol={tokenSymbol}
+          tokenDecimals={tokenDecimals}
+        />
+      }
       secondary={
-        <LockSettings
+        <InfoBoxes
           amount={lockAmount}
           duration={lockDuration}
           spamPenaltyFactor={numData.spamPenaltyFactor}
@@ -34,6 +38,6 @@ function Locks({ locks }) {
       }
     />
   )
-}
+})
 
 export default Locks
