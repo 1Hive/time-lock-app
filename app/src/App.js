@@ -1,15 +1,12 @@
-import React, { useState } from 'react'
-import PropTypes from 'prop-types'
-import styled from 'styled-components'
-import { useAragonApi } from '@aragon/api-react'
+import React from 'react'
 import { Main, SidePanel, SyncIndicator, Header, Badge } from '@aragon/ui'
 
-import Title from './components/Title'
-import MainButton from './components/MainButton'
-import Locks from './screens/Locks'
-import withdrawIcon from './assets/icono.svg'
-import WithdrawLocks from './components/Panels/WithdrawLocks'
 import { useAppLogic } from './hooks/app-hooks'
+import Locks from './screens/Locks'
+import MainButton from './components/MainButton'
+import Title from './components/Title'
+import WithdrawLocks from './components/Panels/WithdrawLocks'
+import Icon from './assets/icon.svg'
 
 function App() {
   const { locks, panelState, isSyncing, tokenSymbol, actions } = useAppLogic()
@@ -20,19 +17,16 @@ function App() {
         <SyncIndicator visible={isSyncing} />
         <Header
           primary={
-            <Title
-              text="Time Lock"
-              after={tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>}
-            />
+            <Title text="Time Lock" after={tokenSymbol && <Badge.App>{tokenSymbol}</Badge.App>} />
           }
           secondary={
-            locks.length > 0 ? (
+            !!locks.length && (
               <MainButton
                 label="Withdraw"
                 onClick={panelState.requestOpen}
-                icon={<img src={withdrawIcon} height="30px" alt="" />}
+                icon={<img src={Icon} height="30px" alt="" />}
               />
-            ) : null
+            )
           }
         />
 
@@ -54,17 +48,4 @@ function App() {
   )
 }
 
-const TempHeader = styled.div`
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-  height: 63px;
-  display: flex;
-  -webkit-box-pack: justify;
-  justify-content: space-between;
-  box-shadow: rgba(0, 0, 0, 0.05) 0px 2px 5px;
-  background: rgb(255, 255, 255);
-`
-
 export default App
-

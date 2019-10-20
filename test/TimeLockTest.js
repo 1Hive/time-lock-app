@@ -223,7 +223,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
       beforeEach('create execution script', async () => {
         await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
 
-        //create script
+        // create script
         executionTarget = await ExecutionTarget.new()
         const action = {
           to: executionTarget.address,
@@ -251,14 +251,14 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         const actualNumberOfLocks = await timeLockForwarder.getWithdrawLocksCount(appManager)
         const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(appManager, 0)
 
-        //forwarded successfully
+        // forwarded successfully
         assert.equal(actualCounter, expectedCounter)
 
-        //transfered tokens successfully
+        // transfered tokens successfully
         assert.equal(actualLockerBalance, expectedLockerBalance.toString())
         assert.equal(actualLockAppBalance, expectedLockAppBalance.toString())
 
-        //lock created successfully
+        // lock created successfully
         assert.equal(actualNumberOfLocks, expectedNumberOfLocks)
         assert.equal(actualLockAmount, expectedLockAmount.toString())
       })
@@ -298,6 +298,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           await timeLockForwarder.forward(script, { from: appManager })
 
           const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(appManager, 1)
+
           assert.equal(actualLockAmount, expectedLockAmount.toString())
         })
       })
@@ -338,7 +339,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           const expectedLockCount = lockCount - locksToWithdraw
           const expectedBalance = addressPrevBalance.add(INITIAL_LOCK_AMOUNT.mul(bigExp(locksToWithdraw)))
 
-          //increase time
+          // increase time
           await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
           await timeLockForwarder.withdrawTokens(locksToWithdraw, {
             from: appManager,
@@ -373,7 +374,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
             const expectedLockCount = lockCount - locksToWithdraw
 
             await timeLockForwarder.changeLockDuration(newLockDuration)
-            //current locks's unlockTime is 60
+            // current locks's unlockTime is 60
             await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
             await timeLockForwarder.withdrawTokens(locksToWithdraw, {
               from: appManager,
@@ -397,7 +398,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
             const expectedBalance = previousBalance.add(INITIAL_LOCK_AMOUNT)
 
             await timeLockForwarder.changeLockAmount(newLockAmount)
-            //current locks's lockAmount is 10
+            // current locks's lockAmount is 10
             await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION + 1)
             await timeLockForwarder.withdrawTokens(locksToWithdraw, {
               from: appManager,

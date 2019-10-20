@@ -1,4 +1,4 @@
-import { toChecksumAddress, hexToNumber } from 'web3-utils'
+import { toChecksumAddress } from 'web3-utils'
 
 // Check address equality without checksums
 export function addressesEqual(first, second) {

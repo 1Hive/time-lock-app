@@ -1,27 +1,31 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import React, { useReducer, useEffect, useCallback, useRef } from 'react'
 import styled from 'styled-components'
-import { Button, TextInput, Text, Field, theme } from '@aragon/ui'
-import { reduceTotal } from '../../lib/lock-utils'
-import { formatTokenAmount } from '../../lib/math-utils'
-import { InfoMessage } from '../Message'
+
+import { Button, TextInput, Text, Field, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
+import { InfoMessage } from '../Message'
 
-function WithdrawLocks({ locks, withdraw, panelOpened }) {
+import { reduceTotal, lockReducer } from '../../lib/lock-utils'
+import { formatTokenAmount } from '../../lib/math-utils'
+
+const useUnlocked = locks => locks.filter(l => l.unlocked)
+const getTotalRefund = locks => reduceTotal(locks)
+
+const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
+  const theme = useTheme()
   const { tokenSymbol, tokenDecimals } = useAppState()
-  const unlocked = locks.filter(l => l.unlocked)
 
-  const initialState = useMemo(() => ({ value: '0', max: unlocked.length }), [unlocked.length])
-  const [count, handleCountChange] = useCount(initialState, unlocked)
+  const unlocked = useUnlocked(locks)
+  const [count, setCount] = useCount(unlocked.length)
+  const refund = getTotalRefund(unlocked.slice(0, count.value))
 
-  const refund = reduceTotal(unlocked.slice(0, count.value))
+  /* Panel opens =>  Focus input
+   * Panel closes => Reset lock count state
+   **/
   const inputRef = useRef(null)
-
-  //when panel opens want to focus in the input
-  //when panel closes want to reset lock count state
   useEffect(() => {
-    if (panelOpened) inputRef.current.focus()
-    else handleCountChange(initialState.value)
-  }, [panelOpened])
+    panelOpened ? inputRef.current.focus() : setCount(0)
+  }, [panelOpened, setCount])
 
   const handleFormSubmit = useCallback(
     e => {
@@ -35,64 +39,77 @@ function WithdrawLocks({ locks, withdraw, panelOpened }) {
     <form onSubmit={handleFormSubmit}>
       <InfoMessage
         title={'Lock action'}
-        text={`This action will withdraw the ${count.value == 1 ? '' : count.value} oldest lock${
-          count.value == 1 ? '' : 's'
+        text={`This action will withdraw the ${count.value === 1 ? '' : count.value} oldest lock${
+          count.value === 1 ? '' : 's'
         }`}
       />
       <Row>
-        <Split>
+        <Split
+          css={`
+            border-right: 1px solid ${theme.accent};
+          `}
+        >
           <h2>
             <Text smallcaps>Withdrawable locks</Text>
           </h2>
-
           <Text weight={'bold'}>{count.max}</Text>
         </Split>
         <Split>
           <h2>
             <Text smallcaps>Tokens back</Text>
           </h2>
-
-          <Text weight={'bold'}>{`${formatTokenAmount(refund, false, tokenDecimals)} ${tokenSymbol}`} </Text>
+          <Text weight={'bold'}>
+            {`${formatTokenAmount(refund, false, tokenDecimals)} ${tokenSymbol}`}{' '}
+          </Text>
         </Split>
       </Row>
       <Row>
-        <Field label="Withdraw" style={{ width: '100%', marginBottom: '20px' }}>
+        <Field label="Number of locks" style={{ width: '100%', marginBottom: '20px' }}>
           <TextInput
+            type="number"
             name="count"
-            wide={true}
+            wide
             value={count.value}
-            max={count.max}
-            min={'1'}
             step={'1'}
-            onChange={handleCountChange}
-            required
+            min={'1'}
+            max={count.max}
+            onChange={setCount}
             ref={inputRef}
-            css={{ borderTopRightRadius: '0', borderBottomRightRadius: '0', borderRight: '0' }}
+            required
+            css={`
+              border-top-right-radius: 0,
+              border-bottom-right-radius: 0,
+              border-right: 0,
+            `}
           />
         </Field>
-        <MaxInput onClick={() => handleCountChange(count.max)}>Max</MaxInput>
+        <Max onClick={() => setCount(count.max)}>Max</Max>
       </Row>
-      <Button type="submit" mode="strong" wide={true} disabled={count.max <= 0}>
+      <Button type="submit" mode="strong" wide disabled={count.max <= 0}>
         Withdraw
       </Button>
     </form>
   )
-}
+})
 
-function useCount(init, unlocked) {
-  const [count, setCount] = useState(init)
+function useCount(unlocked) {
+  const [count, dispatch] = useReducer(lockReducer, { value: 0, max: unlocked })
+  console.log(count)
 
+  // When the number of unlocked changes => Update max
   useEffect(() => {
-    setCount({ ...count, max: unlocked.length })
-  }, [unlocked.length])
+    dispatch({ type: 'SET_MAX', max: unlocked })
+  }, [unlocked])
 
-  //we use only one function for all cases the count can change
+  // We use only one function for all cases the count can change
   const handleCountChange = useCallback(
-    e => {
-      const value = e.target ? e.target.value : e
-      if (value <= count.max) setCount({ ...count, value })
+    newValue => {
+      const value = newValue.target ? newValue.target.value : newValue
+      if (value <= count.max) {
+        dispatch({ type: 'SET_COUNT', value })
+      }
     },
-    [count]
+    [count.max]
   )
 
   return [count, handleCountChange]
@@ -108,13 +125,9 @@ const Split = styled.div`
   flex-basis: 50%;
   padding: 20px;
   text-align: center;
-
-  &:first-child {
-    border-right: 2px solid ${theme.accent};
-  }
 `
 
-const MaxInput = styled.span`
+const Max = styled.span`
   padding: 9px;
   background-color: #1ccde3;
   cursor: pointer;
