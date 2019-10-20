@@ -94,7 +94,7 @@ Once the forwarding is performed you should be able to see the current lock and 
 Once your balance is unlocked you will be able to re-claim your tokens via the withdraw button.
 You will have to input how many locks you'll re-claim and they'll be withdrawn on a FIFO bassis (first in first out)
 
-## How to deploy Lock app to an organization
+## Aragon DAO Installation
 
 TODO: Deploy Time Lock to rinkeby
 
