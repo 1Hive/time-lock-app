@@ -20,7 +20,7 @@ The Time Lock app is a [forwarder](https://hack.aragon.org/docs/forwarding-intro
 
 We keep track of when locks are made and by whom so that users are only able to re-claim locks that they have made after the duration has elapsed.
 
-We recommend (but do not require) that the lock function is set to an [ACL Oracle](https://hack.aragon.org/docs/acl_IACLOracle) set to the DAO's Token Manager. This is how permissions are set up in our [demo template](https://github.com/1Hive/time-lock-app/blob/master/contracts/examples/Template.sol#L122). This allows the Oracle to check if the `msg.sender` of a proposal has tokens in the DAO's Token Manager (and thus is a member of the DAO who's qualified to create proposals) before granting the `canForward()` functionality. This means that in order to submit a proposal one must lock tokens, and in order to lock tokens one must be a member of the DAO.
+We recommend (but do not require) that the lock function is used with the [Token Balance Oracle](https://github.com/1Hive/token-oracle) to restrict use of the application to members of the organization. This is how permissions are set up in our [demo template](https://github.com/1Hive/time-lock-app/blob/master/contracts/examples/Template.sol#L122). This allows the Oracle to check if the `msg.sender` of a proposal has tokens (and thus is a member of the DAO who's qualified to create proposals) before granting the `canForward()` functionality. This means that in order to submit a proposal one must lock tokens, and in order to lock tokens one must be a member of the DAO.
 
 ### Initialization
 
@@ -29,12 +29,12 @@ At initialization the `_token` parameter can be set to an ERC20 token. It cannot
 
 ### Roles
 
-The Time Lock app should implement the following roles:
+The Time Lock app implements the following roles:
 
-- **Change Duration**: This allows for changing the configured duration. This should not impact the claiming process for existing locks.
-- **Change Lock Amount**: This allows for changing the amount of tokens required to lock. This should not impact the claiming process for existing locks.
+- **Change Duration**: This allows for changing the configured duration.
+- **Change Lock Amount**: This allows for changing the amount of tokens required to lock. 
 - **Change Spam Penalty**: This allows for changing the spam penalty factor for subsequent locks.
-- **Lock Tokens**: This should be granted to an [ACL Token Oracle](https://github.com/1Hive/token-oracle) that checks if the user locking tokens prior to submitting a proposal is a member of the DAO.
+- **Lock Tokens**: This should be granted to `Any Entity` and paramaterized using the [ACL Token Oracle](https://github.com/1Hive/token-oracle) or similar contract.
 
 ### Interface
 
