@@ -29,7 +29,7 @@ function LockSettings({
             address={tokenAddress}
             name={tokenName}
             symbol={tokenSymbol}
-            networkType={network.type}
+            networkType={network && network.type}
           />,
         ],
         ['Span penalty', <Text>{`${round(spamPenaltyFactor * 100)} %`}</Text>],
