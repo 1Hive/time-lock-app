@@ -14,7 +14,7 @@ The Time Lock app is still in development, a first implementation was published 
 
 The code in this repo has not been audited.
 
-## How does it work
+## How does it work?
 
 The Time Lock app is a [forwarder](https://hack.aragon.org/docs/forwarding-intro). By granting the Time Lock app a permission like `Create Votes` the user will be prompted and required to lock tokens before the user's intent can be forwarded.
 

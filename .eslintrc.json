@@ -24,13 +24,13 @@
         "trailingComma": "es5",
         "bracketSpacing": true,
         "jsxBracketSameLine": false,
-        "printWidth": 120
+        "printWidth": 100,
+        "tabSize": 2
       }
     ],
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
     "linebreak-style": ["error", "unix"],
-    "tabSize": 2,
     "formatOnSave": true
   }
 }

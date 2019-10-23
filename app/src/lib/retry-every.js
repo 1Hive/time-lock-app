@@ -32,9 +32,7 @@ const retryEvery = async (
 
       // Exponentially backoff attempts
       const nextRetryTime = retryTimer * increaseFactor
-      console.log(
-        `Retrying in ${nextRetryTime}s... (attempt ${retryNum} of ${maxRetries})`
-      )
+      console.log(`Retrying in ${nextRetryTime}s... (attempt ${retryNum} of ${maxRetries})`)
       await sleep(nextRetryTime)
       return attempt(nextRetryTime)
     }

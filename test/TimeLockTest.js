@@ -298,6 +298,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           await timeLockForwarder.forward(script, { from: appManager })
 
           const { lockAmount: actualLockAmount } = await timeLockForwarder.addressesWithdrawLocks(appManager, 1)
+
           assert.equal(actualLockAmount, expectedLockAmount.toString())
         })
       })
