@@ -82,7 +82,7 @@ contract Template is TemplateBase {
         tokenFactory = new MiniMeTokenFactory();
     }
 
-    function newInstance(bool setTokenOracle) public {
+    function newInstance(bool setTokenBalanceOracle) public {
         address root = msg.sender;
         Kernel dao = fac.newDAO(this);
         ACL acl = ACL(dao.acl());
@@ -91,7 +91,7 @@ contract Template is TemplateBase {
         TimeLock timeLock = TimeLock(installApp(dao, TIME_LOCK_APP_ID));
         TokenManager tokenManager = TokenManager(installApp(dao, TOKEN_MANAGER_APP_ID));
         Voting voting = Voting(installApp(dao, VOTING_APP_ID));
-        TokenBalanceOracle oracle;
+        TokenBalanceOracle tokenBalanceOracle;
 
         MiniMeToken lockToken = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Lock token", 18, "LKT", true);
         lockToken.generateTokens(root, 300e18);
@@ -116,17 +116,17 @@ contract Template is TemplateBase {
         acl.createPermission(root, timeLock, timeLock.CHANGE_SPAM_PENALTY_ROLE(), voting);
         acl.createPermission(ANY_ENTITY, timeLock, timeLock.LOCK_TOKENS_ROLE(), this);
 
-        if (setTokenOracle) {
-            oracle = TokenBalanceOracle(installApp(dao, TOKEN_BALANCE_ORACLE_APP_ID));
+        if (setTokenBalanceOracle) {
+            tokenBalanceOracle = TokenBalanceOracle(installApp(dao, TOKEN_BALANCE_ORACLE_APP_ID));
 
             //Require entities locking tokens to be a member of the organization by requiring a minimum balance of 1 BEE token
-            oracle.initialize(membershipToken, 1e18);
+            tokenBalanceOracle.initialize(membershipToken, 1e18);
 
-            acl.createPermission(root, oracle, oracle.SET_TOKEN_ROLE(), voting);
-            acl.createPermission(root, oracle, oracle.SET_MIN_BALANCE_ROLE(), voting);
+            acl.createPermission(root, tokenBalanceOracle, tokenBalanceOracle.SET_TOKEN_ROLE(), voting);
+            acl.createPermission(root, tokenBalanceOracle, tokenBalanceOracle.SET_MIN_BALANCE_ROLE(), voting);
 
             //grant permission to Any account with ACL oracle params
-            setOracle(acl, ANY_ENTITY, timeLock, timeLock.LOCK_TOKENS_ROLE(), oracle);
+            setOracle(acl, ANY_ENTITY, timeLock, timeLock.LOCK_TOKENS_ROLE(), tokenBalanceOracle);
         }
 
         // Clean up permissions
