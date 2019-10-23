@@ -20,7 +20,7 @@ import "@aragon/apps-voting/contracts/Voting.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
-import "./Oracle.sol";
+import "@1hive/oracle-token-balance/contracts/TokenBalanceOracle.sol";
 import "../TimeLock.sol";
 
 contract TemplateBase is APMNamehash {
@@ -69,11 +69,11 @@ contract Template is TemplateBase {
     address constant ANY_ENTITY = address(-1);
 
     uint8 constant ORACLE_PARAM_ID = 203;
-    enum Op { NONE, EQ, NEQ, GT, LT, GTE, LTE, RET, NOT, AND, OR, XOR, IF_ELSE } // op types
+    enum Op { NONE, EQ, NEQ, GT, LT, GTE, LTE, RET, NOT, AND, OR, XOR, IF_ELSE }
 
     bytes32 internal TIME_LOCK_APP_ID = keccak256(abi.encodePacked(apmNamehash("open"), keccak256("time-lock")));
+    bytes32 internal TOKEN_BALANCE_ORACLE_APP_ID = keccak256(abi.encodePacked(apmNamehash("open"), keccak256("token-balance-oracle")));
     bytes32 internal TOKEN_MANAGER_APP_ID = apmNamehash("token-manager");
-    bytes32 internal VAULT_APP_ID = apmNamehash("vault");
     bytes32 internal VOTING_APP_ID = apmNamehash("voting");
 
     MiniMeTokenFactory tokenFactory;
@@ -82,30 +82,28 @@ contract Template is TemplateBase {
         tokenFactory = new MiniMeTokenFactory();
     }
 
-    function newInstance() public {
+    function newInstance(bool setTokenBalanceOracle) public {
         address root = msg.sender;
         Kernel dao = fac.newDAO(this);
         ACL acl = ACL(dao.acl());
         acl.createPermission(this, dao, dao.APP_MANAGER_ROLE(), this);
 
         TimeLock timeLock = TimeLock(installApp(dao, TIME_LOCK_APP_ID));
-        Oracle oracle = new Oracle();
         TokenManager tokenManager = TokenManager(installApp(dao, TOKEN_MANAGER_APP_ID));
-        Vault vault = Vault(installDefaultApp(dao, VAULT_APP_ID));
         Voting voting = Voting(installApp(dao, VOTING_APP_ID));
+        TokenBalanceOracle tokenBalanceOracle;
 
         MiniMeToken lockToken = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Lock token", 18, "LKT", true);
         lockToken.generateTokens(root, 300e18);
         lockToken.changeController(root);
 
-        MiniMeToken token = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Bee Token", 18, "BEE", true);
-        token.changeController(tokenManager);
+        MiniMeToken membershipToken = tokenFactory.createCloneToken(MiniMeToken(0), 0, "Bee Token", 18, "BEE", false);
+        membershipToken.changeController(tokenManager);
 
         // Initialize apps
-        vault.initialize();
         timeLock.initialize(ERC20(lockToken), 90, 20e18, 100 * PCT);
-        tokenManager.initialize(token, true, 0);
-        voting.initialize(token, 50 * PCT, 20 * PCT, 1 days);
+        tokenManager.initialize(membershipToken, true, 0);
+        voting.initialize(membershipToken, 50 * PCT, 20 * PCT, 1 days);
 
         acl.createPermission(this, tokenManager, tokenManager.MINT_ROLE(), this);
         acl.createPermission(voting, tokenManager, tokenManager.BURN_ROLE(), root);
@@ -116,10 +114,20 @@ contract Template is TemplateBase {
         acl.createPermission(root, timeLock, timeLock.CHANGE_DURATION_ROLE(), voting);
         acl.createPermission(root, timeLock, timeLock.CHANGE_AMOUNT_ROLE(), voting);
         acl.createPermission(root, timeLock, timeLock.CHANGE_SPAM_PENALTY_ROLE(), voting);
+        acl.createPermission(ANY_ENTITY, timeLock, timeLock.LOCK_TOKENS_ROLE(), this);
 
-        acl.createPermission(this, timeLock, timeLock.LOCK_TOKENS_ROLE(), this);
-        // creating param for Token balance Oracle
-        setOracle(acl, ANY_ENTITY, timeLock, timeLock.LOCK_TOKENS_ROLE(), oracle);
+        if (setTokenBalanceOracle) {
+            tokenBalanceOracle = TokenBalanceOracle(installApp(dao, TOKEN_BALANCE_ORACLE_APP_ID));
+
+            //Require entities locking tokens to be a member of the organization by requiring a minimum balance of 1 BEE token
+            tokenBalanceOracle.initialize(membershipToken, 1e18);
+
+            acl.createPermission(root, tokenBalanceOracle, tokenBalanceOracle.SET_TOKEN_ROLE(), voting);
+            acl.createPermission(root, tokenBalanceOracle, tokenBalanceOracle.SET_MIN_BALANCE_ROLE(), voting);
+
+            //grant permission to Any account with ACL oracle params
+            setOracle(acl, ANY_ENTITY, timeLock, timeLock.LOCK_TOKENS_ROLE(), tokenBalanceOracle);
+        }
 
         // Clean up permissions
         acl.grantPermission(root, dao, dao.APP_MANAGER_ROLE());
@@ -134,7 +142,6 @@ contract Template is TemplateBase {
         acl.revokePermission(this, tokenManager, tokenManager.MINT_ROLE());
         acl.setPermissionManager(root, tokenManager, tokenManager.MINT_ROLE());
 
-        acl.revokePermission(this, timeLock, timeLock.LOCK_TOKENS_ROLE());
         acl.setPermissionManager(root, timeLock, timeLock.LOCK_TOKENS_ROLE());
 
         emit DeployInstance(dao);
