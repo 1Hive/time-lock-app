@@ -8,7 +8,6 @@ import { InfoAlert } from './Message'
 
 const InfoBoxes = React.memo(props => {
   const { theme } = props
-  console.log(theme)
   return (
     <>
       <Box heading="Lock info">
