@@ -94,7 +94,6 @@ const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
 
 function useCount(unlocked) {
   const [count, dispatch] = useReducer(lockReducer, { value: 0, max: unlocked })
-  console.log(count)
 
   // When the number of unlocked changes => Update max
   useEffect(() => {
