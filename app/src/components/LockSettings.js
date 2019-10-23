@@ -32,7 +32,7 @@ function LockSettings({
             networkType={network && network.type}
           />,
         ],
-        ['Span penalty', <Text>{`${round(spamPenaltyFactor * 100)} %`}</Text>],
+        ['Spam penalty', <Text>{`${round(spamPenaltyFactor * 100)} %`}</Text>],
       ].map(([label, content], index) => {
         return (
           <Row key={index}>
