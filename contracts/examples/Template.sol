@@ -101,7 +101,7 @@ contract Template is TemplateBase {
         membershipToken.changeController(tokenManager);
 
         // Initialize apps
-        timeLock.initialize(ERC20(lockToken), 90, 20e18, 100 * PCT);
+        timeLock.initialize(ERC20(lockToken), 60, 20e18, 100 * PCT);
         tokenManager.initialize(membershipToken, true, 0);
         voting.initialize(membershipToken, 50 * PCT, 20 * PCT, 1 days);
 
