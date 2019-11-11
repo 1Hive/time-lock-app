@@ -6,7 +6,7 @@ import Locks from './screens/Locks'
 import MainButton from './components/MainButton'
 import Title from './components/Title'
 import WithdrawLocks from './components/Panels/WithdrawLocks'
-import Icon from './assets/icon.svg'
+import Icon from './assets/withdraw.svg'
 
 function App() {
   const { locks, panelState, isSyncing, tokenSymbol, actions } = useAppLogic()
@@ -24,7 +24,7 @@ function App() {
               <MainButton
                 label="Withdraw"
                 onClick={panelState.requestOpen}
-                icon={<img src={Icon} height="30px" alt="" />}
+                icon={<img src={Icon} height="22px" alt="" />}
               />
             )
           }
