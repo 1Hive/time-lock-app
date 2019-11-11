@@ -168,10 +168,10 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
       })
     })
 
-    describe('getSpamPenalty()', () => {
+    describe('getSpamPenalty()', () => { 
       it("get's spam penalty amount and duration", async () => {
         const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-          await timeLockForwarder.getSpamPenalty({ from: appManager })
+          await timeLockForwarder.getSpamPenalty(appManager)
         )
 
         assert.equal(actualSpamPenaltyAmount, 0)
@@ -195,7 +195,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
 
         it('spam penalty amount and duration increase for second lock', async () => {
           const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-            await timeLockForwarder.getSpamPenalty({ from: appManager })
+            await timeLockForwarder.getSpamPenalty(appManager)
           )
 
           assert.equal(actualSpamPenaltyAmount, bigExp(5, decimals).toString())
@@ -207,7 +207,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
 
           const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-            await timeLockForwarder.getSpamPenalty({ from: appManager })
+            await timeLockForwarder.getSpamPenalty(appManager)
           )
 
           assert.equal(actualSpamPenaltyAmount, bigExp(10, decimals).toString())

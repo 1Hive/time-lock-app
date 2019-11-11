@@ -113,7 +113,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     * @return Forwarder lock amount
     */
     function forwardFee() external view returns (address, uint256) {
-        (uint256 _spamPenaltyAmount, ) = getSpamPenalty();
+        (uint256 _spamPenaltyAmount, ) = getSpamPenalty(msg.sender);
 
         uint256 totalLockAmountRequired = lockAmount.add(_spamPenaltyAmount);
 
@@ -139,7 +139,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(): uint + self.lockAmount(): uint)` tokens and executes desired action
+    * @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(self): uint + self.lockAmount(): uint)` tokens and executes desired action
     * @dev IForwarder interface conformance.
     *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an
     *      EOA not another forwarder, in order for the spam penalty mechanism to work
@@ -149,7 +149,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
         WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-        (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty();
+        (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty(msg.sender);
 
         uint256 totalAmount = lockAmount.add(spamPenaltyAmount);
         uint256 totalDuration = lockDuration.add(spamPenaltyDuration);
@@ -167,14 +167,14 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Get the amount and duration penalty based on the number of current locks `msg.sender` has
+    * @notice Get the amount and duration penalty based on the number of current locks `_sender` has
     * @dev Potential out of gas issue is considered acceptable. In this case a user would just have to wait and withdraw()
     *      some tokens before this function and forward() could be called again.
     * @return amount penalty
     * @return duration penalty
     */
-    function getSpamPenalty() public view returns (uint256, uint256) {
-        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
+    function getSpamPenalty(address _sender) public view returns (uint256, uint256) {
+        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
 
         uint256 activeLocks = 0;
         for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocks.length; withdrawLockIndex++) {
