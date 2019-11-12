@@ -6,14 +6,11 @@ import "@aragon/os/contracts/common/IForwarderFee.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
-import "./lib/WithdrawLockLib.sol";
-
 
 contract TimeLock is AragonApp, IForwarder, IForwarderFee {
 
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
-    using WithdrawLockLib for WithdrawLockLib.WithdrawLock[];
 
     bytes32 public constant CHANGE_DURATION_ROLE = keccak256("CHANGE_DURATION_ROLE");
     bytes32 public constant CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
@@ -25,6 +22,11 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     string private constant ERROR_CAN_NOT_FORWARD = "TIME_LOCK_CAN_NOT_FORWARD";
     string private constant ERROR_TRANSFER_REVERTED = "TIME_LOCK_TRANSFER_REVERTED";
 
+    struct WithdrawLock {
+        uint256 unlockTime;
+        uint256 lockAmount;
+    }
+
     ERC20 public token;
     uint256 public lockDuration;
     uint256 public lockAmount;
@@ -35,7 +37,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
     // future we must use a mapping instead, requiring overhead of storing index.
-    mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks;
+    mapping(address => WithdrawLock[]) public addressesWithdrawLocks;
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
@@ -92,7 +94,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     * @notice Withdraw all withdrawable tokens
     */
     function withdrawAllTokens() external {
-        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
+        WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         _withdrawTokens(msg.sender, addressWithdrawLocks.length);
     }
 
@@ -148,14 +150,14 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     function forward(bytes _evmCallScript) public {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
-        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
+        WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty(msg.sender);
 
         uint256 totalAmount = lockAmount.add(spamPenaltyAmount);
         uint256 totalDuration = lockDuration.add(spamPenaltyDuration);
         uint256 unlockTime = getTimestamp().add(totalDuration);
 
-        addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(unlockTime, totalAmount));
+        addressWithdrawLocks.push(WithdrawLock(unlockTime, totalAmount));
         require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
         emit NewLock(msg.sender, unlockTime, totalAmount);
@@ -174,7 +176,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     * @return duration penalty
     */
     function getSpamPenalty(address _sender) public view returns (uint256, uint256) {
-        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
+        WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
 
         uint256 activeLocks = 0;
         for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocks.length; withdrawLockIndex++) {
@@ -190,24 +192,30 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {
-        WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[_sender];
-        WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocksCopy = addressesWithdrawLocks[_sender];
-
-        require(_numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
+        WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[_sender];
+        require(_numberWithdrawLocks <= addressWithdrawLocksStorage.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
 
         uint256 amountOwed = 0;
         uint256 withdrawLockCount = 0;
+        uint256 withdrawLockShiftAmount = addressWithdrawLocksStorage.length - _numberWithdrawLocks;
 
-        for (uint256 withdrawLockIndex = 0; withdrawLockIndex < _numberWithdrawLocks; withdrawLockIndex++) {
-
-            WithdrawLockLib.WithdrawLock memory withdrawLock = addressWithdrawLocksCopy[withdrawLockIndex];
+        for (uint256 withdrawLockIndex = _numberWithdrawLocks - 1; withdrawLockIndex >= 0; withdrawLockIndex--) {
+            WithdrawLock memory withdrawLock = addressWithdrawLocksStorage[withdrawLockIndex];
 
             if (getTimestamp() > withdrawLock.unlockTime) {
                 amountOwed = amountOwed.add(withdrawLock.lockAmount);
                 withdrawLockCount += 1;
-                addressWithdrawLocksStorage.deleteItem(withdrawLock);
+
+                delete addressWithdrawLocksStorage[withdrawLockIndex];
             }
         }
+
+        for (uint256 shiftIndex = 0; shiftIndex < withdrawLockShiftAmount; shiftIndex++) {
+            addressWithdrawLocksStorage[shiftIndex] = addressWithdrawLocksStorage[_numberWithdrawLocks + shiftIndex];
+        }
+
+        addressWithdrawLocksStorage.length = withdrawLockShiftAmount;
+
         token.transfer(_sender, amountOwed);
 
         emit Withdrawal(_sender, withdrawLockCount);
