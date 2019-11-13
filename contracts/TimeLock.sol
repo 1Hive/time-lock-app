@@ -200,14 +200,15 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         uint256 withdrawLockCount = 0;
         uint256 addressWithdrawLocksLength = addressWithdrawLocks.length;
 
-        for (int256 withdrawLockIndex = int256(_numberWithdrawLocks - 1); withdrawLockIndex >= 0; withdrawLockIndex--) {
+        for (uint256 i = _numberWithdrawLocks; i > 0; i--) {
 
-            WithdrawLock memory withdrawLock = addressWithdrawLocks[uint256(withdrawLockIndex)];
+            uint256 withdrawLockIndex = i - 1;
+            WithdrawLock memory withdrawLock = addressWithdrawLocks[withdrawLockIndex];
 
             if (getTimestamp() > withdrawLock.unlockTime) {
                 amountOwed = amountOwed.add(withdrawLock.lockAmount);
                 withdrawLockCount += 1;
-                delete addressWithdrawLocks[uint256(withdrawLockIndex)];
+                delete addressWithdrawLocks[withdrawLockIndex];
             }
         }
 
