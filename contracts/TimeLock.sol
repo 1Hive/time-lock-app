@@ -198,7 +198,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
 
         uint256 amountOwed = 0;
         uint256 withdrawLockCount = 0;
-        uint256 withdrawLockLength = addressWithdrawLocks.length;
+        uint256 addressWithdrawLocksLength = addressWithdrawLocks.length;
 
         for (uint256 i = _numberWithdrawLocks; i > 0; i--) {
 
@@ -212,12 +212,12 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
             }
         }
 
-        uint256 withdrawLockItemsToShift = withdrawLockLength - withdrawLockCount;
-        for (uint256 shiftIndex = 0; shiftIndex < withdrawLockItemsToShift; shiftIndex++) {
+        uint256 newAddressWithdrawLocksLength = addressWithdrawLocksLength - withdrawLockCount;
+        for (uint256 shiftIndex = 0; shiftIndex < newAddressWithdrawLocksLength; shiftIndex++) {
             addressWithdrawLocks[shiftIndex] = addressWithdrawLocks[shiftIndex + withdrawLockCount];
         }
 
-        addressWithdrawLocks.length = withdrawLockItemsToShift;
+        addressWithdrawLocks.length = newAddressWithdrawLocksLength;
 
         token.transfer(msg.sender, amountOwed);
 

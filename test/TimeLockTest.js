@@ -362,7 +362,16 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           })
 
           const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(appManager)
+
+          let locks = []
+          for (let i = 0; i < actualLockCount; i++) {
+            locks.push(await timeLockForwarder.addressesWithdrawLocks(appManager, i))
+          }
+
+          const isSorted = locks.every(({ unlockTime }, i, arr) => !i || unlockTime >= arr[i - 1].unlockTime)
+
           assert.equal(actualLockCount, expectedLockCount)
+          assert.isTrue(isSorted)
         })
 
         it(`withdraws all locked tokens (${lockCount})`, async () => {
