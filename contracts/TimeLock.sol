@@ -24,11 +24,6 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     string private constant ERROR_CAN_NOT_FORWARD = "TIME_LOCK_CAN_NOT_FORWARD";
     string private constant ERROR_TRANSFER_REVERTED = "TIME_LOCK_TRANSFER_REVERTED";
 
-    struct WithdrawLock {
-        uint256 unlockTime;
-        uint256 lockAmount;
-    }
-
     ERC20 public token;
     uint256 public lockDuration;
     uint256 public lockAmount;
