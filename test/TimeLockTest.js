@@ -351,6 +351,20 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           assert.equal(actualBalance, expectedBalance.toString())
         })
 
+        it('withdraws half of locked tokens', async () => {
+          const locksToWithdraw = lockCount / 2
+          const expectedLockCount = lockCount - locksToWithdraw
+
+          // increase time
+          await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION * lockCount + 1)
+          await timeLockForwarder.withdrawTokens(locksToWithdraw, {
+            from: appManager,
+          })
+
+          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(appManager)
+          assert.equal(actualLockCount, expectedLockCount)
+        })
+
         it(`withdraws all locked tokens (${lockCount})`, async () => {
           const expectedLockCount = 0
 
