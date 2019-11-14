@@ -16,16 +16,14 @@ Locks are created whenever the user signals an intent to take an action that the
 
 At the time that a user creates a transaction to signal intent, the lock app will first ask the user to create a lock before forwarding the intent. The lock app will only ask users to create locks when they signal intent to take actions that lock app controls. This happens outside of the UI of the lock app itself and is injected into the transaction signing flow. There is no way to arbitrarily lock tokens for no reason at all.
 
-<img src='' alt='signalling intent and locking a token'/>
+  <img src="https://raw.githubusercontent.com/1Hive/time--lock-app/master/docs/resources/lock-tokens.gif" width="600" />
 
 ### Withdrawing a lock
 
 Unlike creating locks, which happens within the flow of taking an action, withdrawing locks happens within the UI of the lock app. Users can open the app anytime to see locks that are currently active. When a lock has expired and is ready to be withdrawn it will show up in the Unlocked Balance section at the top of the app window. Users can then click the Withdraw button to retrieve locked tokens.
 
-<img src='' alt='viewing current locks'/>
-
 Withdrawing tokens happens on a lock by lock basis. Users can select the amount of locks they want to withdraw, but they do not select the token amount directly. This is because the lock app is only aware of locks, their amounts, and their duration. Users are telling the lock app to delete their old lock and send back those locked tokens. The lock is what's being sent back, and the tokens are a byproduct of that transaction.
 
-<img src='' alt='withdrawing expired locks'/>
+  <img src="https://raw.githubusercontent.com/1Hive/time--lock-app/master/docs/resources/withdraw-tokens.gif" width="600" />
 
 <br />
