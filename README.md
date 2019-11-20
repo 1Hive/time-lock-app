@@ -85,9 +85,12 @@ You will also see the configuration for your local deployment in the terminal. I
 
 ### Template
 
-The Time Lock app is initialized with a `_lockDuration` of 1:30 minutes, a `_lockAmount` of 20 LKT tokens and a `_spamPenaltyFactor` of 100%.
+The Time Lock app is initialized with a `_lockDuration` of 1 minute, a `_lockAmount` of 20 LKT tokens and a `_spamPenaltyFactor` of 100%.
 The app has the permission to create votes, so if you try to mint yourself some tokens from the `tokens` app it will first prompt you to approve the Time Lock app to transfer 20 LKT tokens to the contract on your behalf.
 Once the forwarding is performed you should be able to see the current lock and a timer indicating how much time until you can re-claim your 20 LKT tokens.
+
+:warning: **Note that you must have the required amount of tokens in order to forward an intent**
+e.g The Time Lock app is configured with the DAI token and with an amount of 5 DAI. If the user doesn't hold sufficient DAI, the action is going to fail.
 
 ### Re-claiming your tokens
 

@@ -16,6 +16,10 @@ Locks are created whenever the user signals an intent to take an action that the
 
 The lock app will only ask users to create locks when they signal intent to take actions that lock app controls. This happens outside of the UI of the lock app itself and is injected into the transaction signing flow. There is no way to arbitrarily lock tokens for no reason at all.
 
+**Note that you must have the required amount of tokens in order to forward an intent**
+
+e.g The Time Lock app is configured with the DAI token and with an amount of 5 DAI. If the user doesn't hold sufficient DAI, the action is going to fail.
+
 <p align="center">
   <img src="./resources/lock-tokens.gif" width="600" />
 </p>
