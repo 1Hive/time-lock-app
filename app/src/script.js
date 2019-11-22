@@ -84,16 +84,18 @@ function initializeState(tokenContract) {
 }
 
 async function updateConnectedAccount(state, { account }) {
-  const lockCount = await app.call('getWithdrawLocksCount', account).toPromise()
   const locks = []
+  if (account) {
+    const lockCount = await app.call('getWithdrawLocksCount', account).toPromise()
 
-  for (let i = 0; i < lockCount; i++) {
-    let { unlockTime, lockAmount } = await app
-      .call('addressesWithdrawLocks', account, i)
-      .toPromise()
-    locks.push({ unlockTime: marshallDate(unlockTime), lockAmount })
+
+    for (let i = 0; i < lockCount; i++) {
+      let { unlockTime, lockAmount } = await app
+        .call('addressesWithdrawLocks', account, i)
+        .toPromise()
+      locks.push({ unlockTime: marshallDate(unlockTime), lockAmount })
+    }
   }
-
   return {
     ...state,
     locks,
