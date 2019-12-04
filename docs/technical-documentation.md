@@ -1,58 +1,6 @@
 # Time Lock App Technical Docs
 
-This doc goes through `TimeLock.sol` and `WithdrawLockLib.sol`, explaining every function and it's intended functionality.
-
-<br />
-
-## WithdrawLockLib.sol
-
-`WithdrawLockLib.sol` is a library that creates and deletes locks. Because `TimeLock.sol` is dependent on many Aragon apps that use solidity 0.4.24, `WithdrawLockLib.sol` also uses solidity 0.4.24. In the future these may be upgraded.
-
-```
-pragma solidity ^0.4.24;
-```
-
-```
-pragma solidity ^0.4.24;
-
-library WithdrawLockLib {
-	// snip
-}
-```
-
-### Creating Locks
-
-Locks are encoded in a `WithdrawLock` struct that keeps track of the `unlockTime` (when the lock can be unlocked) and `lockAmount` (how many tokens were locked).
-
-```
-struct WithdrawLock {
-		uint256 unlockTime;
-		uint256 lockAmount;
-}
-```
-
-### Deleting Locks
-
-The `deleteItem()` function takes in a `WithdrawLock` struct, checks that it matches a lock associated with the address that's calling it, and then deletes the lock and decreases the lock counter for that address by 1. Then it returns a boolean if it succeeded or not. This then lets `_withdrawTokens()` know if it should transfer the `WithdrawLock` amount to the user or not.
-
-```
-function deleteItem(WithdrawLock[] storage self, WithdrawLock item) internal returns (bool) {
-		uint256 length = self.length;
-		for (uint256 i = 0; i < length; i++) {
-				if (self[i].unlockTime == item.unlockTime && self[i].lockAmount == item.lockAmount) {
-						uint256 newLength = self.length - 1;
-						if (i != newLength) {
-								self[i] = self[newLength];
-						}
-
-						delete self[newLength];
-						self.length = newLength;
-
-						return true;
-				}
-		}
-}
-```
+This doc goes through `TimeLock.sol`, explaining every function and it's intended functionality.
 
 <br />
 
@@ -70,7 +18,7 @@ pragma solidity ^0.4.24;
 
 ### Dependencies
 
-Our dependencies are fairly straight forward. We do however create an external library `WithdrawLockLib.sol` to manage the storage of a user's locks and their duration. More info on that can be seen in the `WithdrawLockLib.sol` section of this guide.
+Our dependencies are fairly straight forward
 
 ```
 
@@ -81,13 +29,18 @@ import "@aragon/os/contracts/common/IForwarderFee.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
-// library we created to manage locks
-import "./lib/WithdrawLockLib.sol";
 ```
 
 ### Global Variables
 
+Locks are encoded in a `WithdrawLock` struct that keeps track of the `unlockTime` (when the lock is unlocked) and `lockAmount` (how many tokens were locked).
+
 ```
+struct WithdrawLock {
+	uint256 unlockTime;
+	uint256 lockAmount;
+}
+
 // the type of token to be locked
 // - in the future this may include ETH as well as ERC20 tokens
 ERC20 public token;
@@ -102,6 +55,7 @@ uint256 public spamPenaltyFactor;
 // - note: since this is a constant it can be set here rather than in the `initialize()` function
 // The spam penalty value is expressed between zero and a maximum of 10^18 (that represents 100%). As a consequence, it's important to consider that 1% is actually represented by 10^16.
 uint256 public constant PCT_BASE = 10 ** 18;
+
 ```
 
 ### Spam penalty Variables Explained
@@ -121,8 +75,10 @@ The idea behind this is to prevent spamming of proposals.
 `addressesWithdawLocks` maps an address to it's locks. Since an address can have multiple locks, these locks are stored in a `WithdrawLock[]` dynamically sized array. Each lock is a `WithdrawLock` struct that has an `unlockAmount` and `unlockTime`. Each address is mapped to a `WithdrawLock[]` array that holds that address's `WithdrawLock` stucts.
 
 ```
+
 // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in future we must use a mapping instead.
 mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks;
+
 ```
 
 ### Emitting Events
@@ -146,12 +102,14 @@ event Withdrawal(address withdrawalAddress ,uint256 withdrawalLockCount);
 * @param _spamPenaltyFactor The spam penalty factor (`_spamPenaltyFactor / PCT_BASE`)
 */
 function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, uint256 _spamPenaltyFactor) external onlyInit {
-		token = ERC20(_token);
-		lockDuration = _lockDuration;
-		lockAmount = _lockAmount;
-		spamPenaltyFactor = _spamPenaltyFactor;
+    require(isContract(_token), ERROR_NOT_CONTRACT);
 
-		initialized();
+    token = ERC20(_token);
+    lockDuration = _lockDuration;
+    lockAmount = _lockAmount;
+    spamPenaltyFactor = _spamPenaltyFactor;
+
+    initialized();
 }
 ```
 
@@ -165,8 +123,8 @@ These functions allow changes to the standard parameters for the Time Lock app. 
 * @param _lockDuration The new lock duration
 */
 function changeLockDuration(uint256 _lockDuration) external auth(CHANGE_DURATION_ROLE) {
-		lockDuration = _lockDuration;
-		emit ChangeLockDuration(lockDuration);
+    lockDuration = _lockDuration;
+    emit ChangeLockDuration(lockDuration);
 }
 
 /**
@@ -174,8 +132,8 @@ function changeLockDuration(uint256 _lockDuration) external auth(CHANGE_DURATION
 * @param _lockAmount The new lock amount
 */
 function changeLockAmount(uint256 _lockAmount) external auth(CHANGE_AMOUNT_ROLE) {
-		lockAmount = _lockAmount;
-		emit ChangeLockAmount(lockAmount);
+    lockAmount = _lockAmount;
+    emit ChangeLockAmount(lockAmount);
 }
 
 /**
@@ -183,22 +141,22 @@ function changeLockAmount(uint256 _lockAmount) external auth(CHANGE_AMOUNT_ROLE)
 * @param _spamPenaltyFactor The new spam penalty factor
 */
 function changeSpamPenaltyFactor(uint256 _spamPenaltyFactor) external auth(CHANGE_SPAM_PENALTY_ROLE) {
-		spamPenaltyFactor = _spamPenaltyFactor;
-		emit ChangeSpamPenaltyFactor(_spamPenaltyFactor);
+    spamPenaltyFactor = _spamPenaltyFactor;
+    emit ChangeSpamPenaltyFactor(_spamPenaltyFactor);
 }
 ```
 
 ### Withdrawing Locks
 
-`withdrawTokens()` allows the caller to withdraw all available tokens while the `withdrawTokens(uint256 _numberWithdrawLocks)` allows the callers to specify how many locks to withdraw.
+`withdrawTokens()` allows the caller to withdraw all unlocked tokens while the `withdrawTokens(uint256 _numberWithdrawLocks)` allows the callers to specify how many locks to withdraw.
 
 ```
 /**
 * @notice Withdraw all withdrawable tokens
 */
-function withdrawTokens() external {
-		WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-		_withdrawTokens(msg.sender, addressWithdrawLocks.length);
+function withdrawAllTokens() external {
+    WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
+    _withdrawTokens(addressWithdrawLocks.length);
 }
 
 /**
@@ -206,28 +164,32 @@ function withdrawTokens() external {
 * @param _numberWithdrawLocks The number of withdraw locks to attempt withdrawal from
 */
 function withdrawTokens(uint256 _numberWithdrawLocks) external {
-		_withdrawTokens(msg.sender, _numberWithdrawLocks);
+    _withdrawTokens(_numberWithdrawLocks);
 }
 ```
 
 ### Forwarding Intent
 
-`forwardFee()` returns the amount that a user must lock in order to forward an intent. While this function is unopinionated as to what that intent is, in the context of Dandelion Orgs we expect this to be a proposal for the group to vote on.
+`forwardFee()` returns the amount that a user must lock in order to forward an intent. This function is generally called by the [Aragon wrapper](https://github.com/aragon/aragon.js/blob/852d39b4411e415fd88d089041f2a6baf87a83ab/packages/aragon-wrapper/src/utils/transactions.js#L66) to check what token contract should be the user interacting with to perform an approve and for what amount before forwarding the intent.
+
+While this function is unopinionated as to what that intent is, in the context of Dandelion Orgs we expect this to be a proposal for the group to vote on.
+Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work.
 
 ```
 /**
-* @notice Tells the forward fee token and amount of the Time Lock app
+* @notice Returns the forward fee token and required lock amount
 * @dev IFeeForwarder interface conformance
-*      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
+*      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an
+*      EOA not another forwarder, in order for the spam penalty mechanism to work
 * @return Forwarder token address
 * @return Forwarder lock amount
 */
 function forwardFee() external view returns (address, uint256) {
-		(uint256 _spamPenaltyAmount, ) = getSpamPenalty();
+    (uint256 _spamPenaltyAmount, ) = getSpamPenalty(msg.sender);
 
-		uint256 totalLockAmountRequired = lockAmount.add(_spamPenaltyAmount);
+    uint256 totalLockAmountRequired = lockAmount.add(_spamPenaltyAmount);
 
-		return (address(token), totalLockAmountRequired);
+    return (address(token), totalLockAmountRequired);
 }
 ```
 
@@ -235,53 +197,53 @@ function forwardFee() external view returns (address, uint256) {
 
 ```
 /**
-* @notice Tells whether the Time Lock app is a forwarder or not
+* @notice Returns whether the Time Lock app is a forwarder or not
 * @dev IForwarder interface conformance
 * @return Always true
 */
 function isForwarder() external pure returns (bool) {
-		return true;
+    return true;
 }
 ```
 
-`canForward()` checks if the `msg.sender` can forward an intent. This permission can be set to any app, but in the Dandelion Org Template we set it to a [Token Balance Oracle](https://github.com/1Hive/token-oracle) that checks if the address that is trying to forward an intent is also a DAO token holder
+`canForward()` checks if the `msg.sender` can forward an intent. We check if the `msg.sender` has the `LOCK_TOKENS_ROLE` which can be set to any app, but in the Dandelion Org Template we set it to a [Token Balance Oracle](https://github.com/1Hive/token-oracle) that checks if the address that is trying to forward an intent is also a DAO token holder.
 
 ```
 /**
-* @notice Tells whether the _sender can forward actions or not
+* @notice Returns whether the `_sender` can forward actions or not
 * @dev IForwarder interface conformance
 * @return True if _sender has LOCK_TOKENS_ROLE role
 */
 function canForward(address _sender, bytes) public view returns (bool) {
-		return canPerform(_sender, LOCK_TOKENS_ROLE, arr());
+    return canPerform(_sender, LOCK_TOKENS_ROLE, arr(_sender));
 }
 ```
 
-`forward()` checks the amount that a user has to lock to forward an intent, gets that amount from the user and creates the lock, then forwards the intent
+`forward()` checks the amount that a user has to lock and for how long, to forward an intent, gets that amount (asumming the user approved the contract to transfer that amount of tokens to itself prior to this transaction) from the user and creates the lock, then forwards the intent.
 
 ```
 /**
-* @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(): uint + self.lockAmount(): uint)` tokens and executes desired action
-* @dev IForwarder interface conformance. Consider using pretransaction on UI for necessary approval.
-*      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an EOA not another forwarder, in order for the spam penalty mechanism to work
+* @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(self): uint + self.lockAmount(): uint)` tokens and executes desired action
+* @dev IForwarder interface conformance.
+*      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an
+*      EOA not another forwarder, in order for the spam penalty mechanism to work
 * @param _evmCallScript Script to execute
 */
 function forward(bytes _evmCallScript) public {
-		require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
+    require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
 
-		(uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty();
+    WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
+    (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty(msg.sender);
 
-		uint256 totalAmount = lockAmount.add(spamPenaltyAmount);
-		uint256 totalDuration = lockDuration.add(spamPenaltyDuration);
+    uint256 totalAmount = lockAmount.add(spamPenaltyAmount);
+    uint256 totalDuration = lockDuration.add(spamPenaltyDuration);
+    uint256 unlockTime = getTimestamp().add(totalDuration);
 
-		WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
-		uint256 unlockTime = getTimestamp().add(totalDuration);
-		addressWithdrawLocks.push(WithdrawLockLib.WithdrawLock(unlockTime, totalAmount));
+    addressWithdrawLocks.push(WithdrawLock(unlockTime, totalAmount));
+    require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
-		require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
-
-		emit NewLock(msg.sender, unlockTime, totalAmount);
-		runScript(_evmCallScript, new bytes(0), new address[](0));
+    emit NewLock(msg.sender, unlockTime, totalAmount);
+    runScript(_evmCallScript, new bytes(0), new address[](0));
 }
 ```
 
@@ -291,59 +253,74 @@ function forward(bytes _evmCallScript) public {
 
 ```
 function getWithdrawLocksCount(address _lockAddress) public view returns (uint256) {
-		return addressesWithdrawLocks[_lockAddress].length;
+    return addressesWithdrawLocks[_lockAddress].length;
 }
 ```
 
-`getSpamPenalty()` calculates the amount and duration penalty of `msg.sender`
+`getSpamPenalty()` calculates the amount and duration penalty of `_sender`
 
 ```
 /**
-* @notice Get's amount and duration penalty based on the number of current locks `msg.sender` has
+* @notice Get the amount and duration penalty based on the number of current locks `_sender` has
+* @dev Potential out of gas issue is considered acceptable. In this case a user would just have to wait and withdraw()
+*      some tokens before this function and forward() could be called again.
 * @return amount penalty
 * @return duration penalty
 */
-function getSpamPenalty() public view returns (uint256, uint256) {
-		WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
+function getSpamPenalty(address _sender) public view returns (uint256, uint256) {
+    WithdrawLock[] memory addressWithdrawLocks = addressesWithdrawLocks[_sender];
 
-		uint256 activeLocks = 0;
-		for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocks.length; withdrawLockIndex++) {
-				if (getTimestamp() < addressWithdrawLocks[withdrawLockIndex].unlockTime) {
-						activeLocks += 1;
-				}
-		}
+    uint256 activeLocks = 0;
+    for (uint256 withdrawLockIndex = 0; withdrawLockIndex < addressWithdrawLocks.length; withdrawLockIndex++) {
+        if (getTimestamp() < addressWithdrawLocks[withdrawLockIndex].unlockTime) {
+            activeLocks += 1;
+        }
+    }
 
-		return (lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE), lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE));
+    uint256 totalAmount = lockAmount.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE);
+    uint256 totalDuration = lockDuration.mul(activeLocks).mul(spamPenaltyFactor).div(PCT_BASE);
+
+    return (totalAmount, totalDuration);
 }
 ```
 
 ### Withdrawing Locked Tokens
 
-`withdrawTokens()` is a user facing function that allows DAO members to withdraw their previously locked tokens
+`withdrawTokens()` internal function to withdraw `_numberWithdrawLocks` of `msg.sender` locks.
+
+This function assumes the array of locks of `msg.sender` is in ascending order by `unlockTime`, so it will remove the `_numberWithdrawLocks` first locks from the array (assuming `msg.sender` has that many unlocked locks).
+After deletion of locks we shift right the remaining locks to ensure the array keeps ordered.
 
 ```
-function _withdrawTokens(address _sender, uint256 _numberWithdrawLocks) internal {
-		WithdrawLockLib.WithdrawLock[] storage addressWithdrawLocksStorage = addressesWithdrawLocks[_sender];
-		WithdrawLockLib.WithdrawLock[] memory addressWithdrawLocksCopy = addressesWithdrawLocks[_sender];
+function _withdrawTokens(uint256 _numberWithdrawLocks) internal {
+    WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
+    require(_numberWithdrawLocks <= addressWithdrawLocks.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
 
-		require(_numberWithdrawLocks <= addressWithdrawLocksCopy.length, ERROR_TOO_MANY_WITHDRAW_LOCKS);
+    uint256 amountOwed = 0;
+    uint256 withdrawLockCount = 0;
+    uint256 addressWithdrawLocksLength = addressWithdrawLocks.length;
 
-		uint256 amountOwed = 0;
-		// The use of withdrawLockCount variable is only to keep a count of how many locks are going to be witdrawn so we can emit an event that the frontend will be listening to so we can react to it.
-		uint256 withdrawLockCount = 0;
+    for (uint256 i = _numberWithdrawLocks; i > 0; i--) {
 
-		for (uint256 withdrawLockIndex = 0; withdrawLockIndex < _numberWithdrawLocks; withdrawLockIndex++) {
+        uint256 withdrawLockIndex = i - 1;
+        WithdrawLock memory withdrawLock = addressWithdrawLocks[withdrawLockIndex];
 
-				WithdrawLockLib.WithdrawLock memory withdrawLock = addressWithdrawLocksCopy[withdrawLockIndex];
+        if (getTimestamp() > withdrawLock.unlockTime) {
+            amountOwed = amountOwed.add(withdrawLock.lockAmount);
+            withdrawLockCount += 1;
+            delete addressWithdrawLocks[withdrawLockIndex];
+        }
+    }
 
-				if (getTimestamp() > withdrawLock.unlockTime) {
-						amountOwed = amountOwed.add(withdrawLock.lockAmount);
-						withdrawLockCount += 1;
-						addressWithdrawLocksStorage.deleteItem(withdrawLock);
-				}
-		}
-		token.transfer(_sender, amountOwed);
-		// emitting an event for the front end to display
-		emit Withdrawal(_sender, withdrawLockCount);
+    uint256 newAddressWithdrawLocksLength = addressWithdrawLocksLength - withdrawLockCount;
+    for (uint256 shiftIndex = 0; shiftIndex < newAddressWithdrawLocksLength; shiftIndex++) {
+        addressWithdrawLocks[shiftIndex] = addressWithdrawLocks[shiftIndex + withdrawLockCount];
+    }
+
+    addressWithdrawLocks.length = newAddressWithdrawLocksLength;
+
+    token.transfer(msg.sender, amountOwed);
+
+    emit Withdrawal(msg.sender, withdrawLockCount);
 }
 ```

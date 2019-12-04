@@ -32,7 +32,7 @@ At initialization the `_token` parameter can be set to an ERC20 token. It cannot
 The Time Lock app implements the following roles:
 
 - **Change Duration**: This allows for changing the configured duration.
-- **Change Lock Amount**: This allows for changing the amount of tokens required to lock. 
+- **Change Lock Amount**: This allows for changing the amount of tokens required to lock.
 - **Change Spam Penalty**: This allows for changing the spam penalty factor for subsequent locks.
 - **Lock Tokens**: This should be granted to `Any Entity` and paramaterized using the [ACL Token Oracle](https://github.com/1Hive/token-oracle) or similar contract.
 
@@ -72,7 +72,7 @@ npm run start:template
 
 If everything is working correctly, your new DAO will be deployed and your browser will open http://localhost:3000/#/YOUR-DAO-ADDRESS. It should look something like this:
 
-![Newly deploy DAO with lock app](https://i.imgur.com/prqaPXa.png)
+![Newly deploy DAO with lock app](./docs/resources/screenshot.png)
 
 You will also see the configuration for your local deployment in the terminal. It should look something like this:
 
@@ -92,7 +92,7 @@ Once the forwarding is performed you should be able to see the current lock and 
 ### Re-claiming your tokens
 
 Once your balance is unlocked you will be able to re-claim your tokens via the withdraw button.
-You will have to input how many locks you'll re-claim and they'll be withdrawn on a FIFO bassis (first in first out)
+You will have to input how many locks you'll re-claim and they'll be withdrawn on a FIFO basis (first in first out)
 
 ## Aragon DAO Installation
 
@@ -101,7 +101,7 @@ TODO: Deploy Time Lock to rinkeby
 To deploy to an organization you can use the [aragonCLI](https://hack.aragon.org/docs/cli-intro.html).
 
 ```sh
-aragon dao install <dao-address> lock.open.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount>
+aragon dao install <dao-address> time-lock.open.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount>
 ```
 
 You have to set up permissions depending on your requirements for users to lock tokens before forwarding an intent. So for example if you want to require users to lock tokens before creating votes you should grant the Time Lock app the role to create votes on the Voting app.
