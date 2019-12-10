@@ -10,4 +10,5 @@ dist/
 coverage
 coverage.json
 
+.DS_Store
 package-lock.json

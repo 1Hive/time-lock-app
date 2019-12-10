@@ -18,7 +18,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
   let timeLockBase, timeLockForwarder, mockErc20
   let CHANGE_DURATION_ROLE, CHANGE_AMOUNT_ROLE, LOCK_TOKENS_ROLE, CHANGE_SPAM_PENALTY_ROLE
 
-  const MOCK_TOKEN_BALANCE = bigExp(1000, decimals)
+  const MOCK_TOKEN_BALANCE = bigExp(10000, decimals)
   const INITIAL_LOCK_AMOUNT = bigExp(10, decimals)
   const INITIAL_LOCK_DURATION = 60 // seconds
   const INITIAL_SPAM_PENALTY_FACTOR = pct16(50) // 50%
@@ -171,7 +171,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
     describe('getSpamPenalty()', () => {
       it("get's spam penalty amount and duration", async () => {
         const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-          await timeLockForwarder.getSpamPenalty({ from: appManager })
+          await timeLockForwarder.getSpamPenalty(appManager)
         )
 
         assert.equal(actualSpamPenaltyAmount, 0)
@@ -195,7 +195,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
 
         it('spam penalty amount and duration increase for second lock', async () => {
           const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-            await timeLockForwarder.getSpamPenalty({ from: appManager })
+            await timeLockForwarder.getSpamPenalty(appManager)
           )
 
           assert.equal(actualSpamPenaltyAmount, bigExp(5, decimals).toString())
@@ -207,7 +207,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           await timeLockForwarder.changeSpamPenaltyFactor(pct16(100))
 
           const [actualSpamPenaltyAmount, actualSpamPenaltyDuration] = Object.values(
-            await timeLockForwarder.getSpamPenalty({ from: appManager })
+            await timeLockForwarder.getSpamPenalty(appManager)
           )
 
           assert.equal(actualSpamPenaltyAmount, bigExp(10, decimals).toString())
@@ -304,10 +304,10 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
       })
 
       describe('withdrawTokens()', async () => {
-        let lockCount = 3
+        let lockCount = 20
 
         beforeEach('Forward actions', async () => {
-          await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT.mul(bigExp(10)), {
+          await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT.mul(bigExp(1000)), {
             // approve more than required
             from: appManager,
           })
@@ -349,6 +349,29 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
           const actualBalance = await mockErc20.balanceOf(appManager)
           assert.equal(actualLockCount, expectedLockCount)
           assert.equal(actualBalance, expectedBalance.toString())
+        })
+
+        it('withdraws half of locked tokens', async () => {
+          const locksToWithdraw = lockCount / 2
+          const expectedLockCount = lockCount - locksToWithdraw
+
+          // increase time
+          await timeLockForwarder.mockIncreaseTime(INITIAL_LOCK_DURATION * lockCount + 1)
+          await timeLockForwarder.withdrawTokens(locksToWithdraw, {
+            from: appManager,
+          })
+
+          const actualLockCount = await timeLockForwarder.getWithdrawLocksCount(appManager)
+
+          let locks = []
+          for (let i = 0; i < actualLockCount; i++) {
+            locks.push(await timeLockForwarder.addressesWithdrawLocks(appManager, i))
+          }
+
+          const isSorted = locks.every(({ unlockTime }, i, arr) => !i || unlockTime >= arr[i - 1].unlockTime)
+
+          assert.equal(actualLockCount, expectedLockCount)
+          assert.isTrue(isSorted)
         })
 
         it(`withdraws all locked tokens (${lockCount})`, async () => {
@@ -410,84 +433,91 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         })
       })
     })
+  })
 
-    describe('integration tests with token balance oracle', () => {
-      let tokenBalanceOracleBase, tokenBalanceOracle
-      let SET_MIN_BALANCE_ROLE
+  describe('integration tests with token balance oracle', () => {
+    let tokenBalanceOracleBase, tokenBalanceOracle
+    let SET_MIN_BALANCE_ROLE
 
-      const ORACLE_PARAM_ID = new BN(203).shln(248)
-      const EQ = new BN(1).shln(240)
+    const ORACLE_PARAM_ID = new BN(203).shln(248)
+    const EQ = new BN(1).shln(240)
 
-      const totalSupply = bigExp(1500, decimals)
-      const INITIAL_MININUM_BALANCE = bigExp(1000, decimals)
+    const totalSupply = bigExp(1500, decimals)
+    const INITIAL_MININUM_BALANCE = bigExp(1000, decimals)
 
-      beforeEach('deploy oracle and set permissions', async () => {
-        tokenBalanceOracleBase = await TokenBalanceOracle.new()
-        SET_MIN_BALANCE_ROLE = await tokenBalanceOracleBase.SET_MIN_BALANCE_ROLE()
+    beforeEach('deploy oracle and set permissions', async () => {
+      tokenBalanceOracleBase = await TokenBalanceOracle.new()
+      SET_MIN_BALANCE_ROLE = await tokenBalanceOracleBase.SET_MIN_BALANCE_ROLE()
 
-        const newOracleReceipt = await dao.newAppInstance(
-          nameHash('token-balance-oracle.aragonpm.test'),
-          tokenBalanceOracleBase.address,
-          '0x',
-          false,
-          {
-            from: appManager,
-          }
-        )
-        tokenBalanceOracle = await TokenBalanceOracle.at(deployedContract(newOracleReceipt))
+      const newOracleReceipt = await dao.newAppInstance(
+        nameHash('token-balance-oracle.aragonpm.test'),
+        tokenBalanceOracleBase.address,
+        '0x',
+        false,
+        {
+          from: appManager,
+        }
+      )
+      tokenBalanceOracle = await TokenBalanceOracle.at(deployedContract(newOracleReceipt))
 
-        const oracleToken = await MockErc20.new(accountBal1000, totalSupply)
-        oracleToken.transfer(accountBal500, totalSupply.sub(INITIAL_MININUM_BALANCE), { from: accountBal1000 })
-        await tokenBalanceOracle.initialize(oracleToken.address, INITIAL_MININUM_BALANCE)
+      const oracleToken = await MockErc20.new(accountBal1000, totalSupply)
+      oracleToken.transfer(accountBal500, totalSupply.sub(INITIAL_MININUM_BALANCE), { from: accountBal1000 })
+      await tokenBalanceOracle.initialize(oracleToken.address, INITIAL_MININUM_BALANCE)
 
-        // convert oracle address to BN and get param256: [(uint256(ORACLE_PARAM_ID) << 248) + (uint256(EQ) << 240) + oracleAddress];
-        const oracleAddressBN = new BN(tokenBalanceOracle.address.slice(2), 16)
-        const params = [ORACLE_PARAM_ID.add(EQ).add(oracleAddressBN)]
+      await timeLockForwarder.initialize(
+        mockErc20.address,
+        INITIAL_LOCK_DURATION,
+        INITIAL_LOCK_AMOUNT,
+        INITIAL_SPAM_PENALTY_FACTOR
+      )
 
-        await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
-        await acl.grantPermissionP(ANY_ADDR, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
+      // convert oracle address to BN and get param256: [(uint256(ORACLE_PARAM_ID) << 248) + (uint256(EQ) << 240) + oracleAddress];
+      const oracleAddressBN = new BN(tokenBalanceOracle.address.slice(2), 16)
+      const params = [ORACLE_PARAM_ID.add(EQ).add(oracleAddressBN)]
+
+      await acl.createPermission(appManager, timeLockForwarder.address, LOCK_TOKENS_ROLE, appManager)
+      await acl.grantPermissionP(ANY_ADDR, timeLockForwarder.address, LOCK_TOKENS_ROLE, params)
+    })
+
+    describe('canForward(address _sender, bytes', async () => {
+      it('can forward action if account has tokens', async () => {
+        assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
       })
 
-      describe('canForward(address _sender, bytes', async () => {
-        it('can forward action if account has tokens', async () => {
-          assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
+      it('cannot forward action if account does not have minimum required balance', async () => {
+        assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
+      })
+
+      it('cannot forward action if account does not have tokens', async () => {
+        assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
+      })
+
+      context('minimum required balance set to 500', () => {
+        beforeEach('set minimum required balance to 500', async () => {
+          await acl.createPermission(appManager, tokenBalanceOracle.address, SET_MIN_BALANCE_ROLE, appManager)
+          await tokenBalanceOracle.setMinBalance(bigExp(500, decimals))
         })
 
-        it('cannot forward action if account does not have minimum required balance', async () => {
-          assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
+        it('can forward action if account has tokens', async () => {
+          assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
+          assert.isTrue(await timeLockForwarder.canForward(accountBal500, '0x'))
         })
 
         it('cannot forward action if account does not have tokens', async () => {
           assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
         })
+      })
 
-        context('minimum required balance set to 500', () => {
-          beforeEach('set minimum required balance to 500', async () => {
-            await acl.createPermission(appManager, tokenBalanceOracle.address, SET_MIN_BALANCE_ROLE, appManager)
-            await tokenBalanceOracle.setMinBalance(bigExp(500, decimals))
-          })
-
-          it('can forward action if account has tokens', async () => {
-            assert.isTrue(await timeLockForwarder.canForward(accountBal1000, '0x'))
-            assert.isTrue(await timeLockForwarder.canForward(accountBal500, '0x'))
-          })
-
-          it('cannot forward action if account does not have tokens', async () => {
-            assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
-          })
+      context('minimum required balance set to 2000', () => {
+        beforeEach('set minimum required balance to 2000', async () => {
+          await acl.createPermission(appManager, tokenBalanceOracle.address, SET_MIN_BALANCE_ROLE, appManager)
+          await tokenBalanceOracle.setMinBalance(bigExp(2000, decimals))
         })
 
-        context('minimum required balance set to 2000', () => {
-          beforeEach('set minimum required balance to 2000', async () => {
-            await acl.createPermission(appManager, tokenBalanceOracle.address, SET_MIN_BALANCE_ROLE, appManager)
-            await tokenBalanceOracle.setMinBalance(bigExp(2000, decimals))
-          })
-
-          it('cannot forward action if account does not have required minimum balance', async () => {
-            assert.isFalse(await timeLockForwarder.canForward(accountBal1000, '0x'))
-            assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
-            assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
-          })
+        it('cannot forward action if account does not have required minimum balance', async () => {
+          assert.isFalse(await timeLockForwarder.canForward(accountBal1000, '0x'))
+          assert.isFalse(await timeLockForwarder.canForward(accountBal500, '0x'))
+          assert.isFalse(await timeLockForwarder.canForward(accountNoBalance, '0x'))
         })
       })
     })
