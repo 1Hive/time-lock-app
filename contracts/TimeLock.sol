@@ -142,7 +142,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(self): uint + self.lockAmount(): uint)` tokens and executes desired action
+    * @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(msg.sender): uint + self.lockAmount(): uint)` tokens for `@transformTime(self.getSpamPenalty(msg.sender): (uint, <uint>) + self.lockDuration(): uint)` and executes desired action
     * @dev IForwarder interface conformance.
     *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an
     *      EOA not another forwarder, in order for the spam penalty mechanism to work
