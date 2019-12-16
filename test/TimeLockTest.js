@@ -263,6 +263,34 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         assert.equal(actualLockAmount, expectedLockAmount.toString())
       })
 
+      it('cannot forward if evmScript calls a function on the TimeLock app', async () => {
+        await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT, {
+          from: appManager,
+        })
+
+        const action = {
+          to: timeLockForwarder.address,
+          calldata: timeLockForwarder.contract.methods.isForwarder().encodeABI(),
+        }
+        script = encodeCallScript([action])
+
+        await assertRevert(timeLockForwarder.forward(script), 'EVMCALLS_BLACKLISTED_CALL')
+      })
+
+      it('cannot forward if evmScript calls a function on the LockApps token', async () => {
+        await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT, {
+          from: appManager,
+        })
+
+        const action = {
+          to: mockErc20.address,
+          calldata: mockErc20.contract.methods.transfer(appManager, INITIAL_LOCK_AMOUNT.toString()).encodeABI(),
+        }
+        script = encodeCallScript([action])
+
+        await assertRevert(timeLockForwarder.forward(script), 'EVMCALLS_BLACKLISTED_CALL')
+      })
+
       it('cannot forward if sender does not approve lock app to transfer tokens', async () => {
         await assertRevert(timeLockForwarder.forward(script, { from: appManager }), 'TIME_LOCK_TRANSFER_REVERTED')
       })

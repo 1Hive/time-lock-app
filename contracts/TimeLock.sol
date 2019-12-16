@@ -162,7 +162,12 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
         emit NewLock(msg.sender, unlockTime, totalAmount);
-        runScript(_evmCallScript, new bytes(0), new address[](0));
+
+        address[] memory scriptRunnerBlacklist = new address[](2);
+        scriptRunnerBlacklist[0] = address(this);
+        scriptRunnerBlacklist[1] = address(token);
+
+        runScript(_evmCallScript, new bytes(0), scriptRunnerBlacklist);
     }
 
     function getWithdrawLocksCount(address _lockAddress) public view returns (uint256) {
@@ -215,6 +220,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         uint256 newAddressWithdrawLocksLength = addressWithdrawLocksLength - withdrawLockCount;
         for (uint256 shiftIndex = 0; shiftIndex < newAddressWithdrawLocksLength; shiftIndex++) {
             addressWithdrawLocks[shiftIndex] = addressWithdrawLocks[shiftIndex + withdrawLockCount];
+            delete addressWithdrawLocks[shiftIndex + withdrawLockCount];
         }
 
         addressWithdrawLocks.length = newAddressWithdrawLocksLength;
