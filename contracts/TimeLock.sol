@@ -39,6 +39,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
     // future we must use a mapping instead, requiring overhead of storing index.
     mapping(address => WithdrawLock[]) public addressesWithdrawLocks;
+    address[] scriptRunnerBlacklist;
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
@@ -60,6 +61,9 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
         spamPenaltyFactor = _spamPenaltyFactor;
+
+        scriptRunnerBlacklist.push(address(this));
+        scriptRunnerBlacklist.push(address(token));
 
         initialized();
     }
@@ -162,11 +166,6 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
         emit NewLock(msg.sender, unlockTime, totalAmount);
-
-        address[] memory scriptRunnerBlacklist = new address[](2);
-        scriptRunnerBlacklist[0] = address(this);
-        scriptRunnerBlacklist[1] = address(token);
-
         runScript(_evmCallScript, new bytes(0), scriptRunnerBlacklist);
     }
 
