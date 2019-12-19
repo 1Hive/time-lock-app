@@ -217,7 +217,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
     })
 
     describe('forward(bytes _evmCallScript)', async () => {
-      let executionTarget, script
+      let executionTarget, script, action
       let addressLocks = 0
 
       beforeEach('create execution script', async () => {
@@ -225,7 +225,7 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
 
         // create script
         executionTarget = await ExecutionTarget.new()
-        const action = {
+        action = {
           to: executionTarget.address,
           calldata: executionTarget.contract.methods.execute().encodeABI(),
         }
@@ -289,6 +289,27 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         script = encodeCallScript([action])
 
         await assertRevert(timeLockForwarder.forward(script), 'EVMCALLS_BLACKLISTED_CALL')
+      })
+
+      it('cannot forward if evmScript uses incorrect scriptId', async () => {
+        await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT, {
+          from: appManager,
+        })
+        script = encodeCallScript([action])
+        script = '0x00000002' + script.slice(10)
+
+        await assertRevert(timeLockForwarder.forward(script, { from: appManager }))
+        assert.equal(await executionTarget.counter(), 0)
+      })
+
+      it('cannot forward if multiple evmScripts are passed to forward', async () => {
+        await mockErc20.approve(timeLockForwarder.address, INITIAL_LOCK_AMOUNT.mul(new BN(2)), {
+           from: appManager,
+         })
+         script = encodeCallScript([action, action])
+
+         await assertRevert(timeLockForwarder.forward(script, { from: appManager }), "TIME_LOCK_SCRIPT_INCORRECT_LENGTH")
+         assert.equal(await executionTarget.counter(), 0)
       })
 
       it('cannot forward if sender does not approve lock app to transfer tokens', async () => {
