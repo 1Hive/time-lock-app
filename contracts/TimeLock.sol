@@ -6,12 +6,16 @@ import "@aragon/os/contracts/common/IForwarderFee.sol";
 import "@aragon/os/contracts/common/SafeERC20.sol";
 import "@aragon/os/contracts/lib/token/ERC20.sol";
 import "@aragon/os/contracts/lib/math/SafeMath.sol";
-
+import "@aragon/os/contracts/evmscript/ScriptHelpers.sol";
 
 contract TimeLock is AragonApp, IForwarder, IForwarderFee {
 
     using SafeERC20 for ERC20;
     using SafeMath for uint256;
+    using ScriptHelpers for bytes;
+
+    // bytes32 internal constant EXECUTOR_TYPE = keccak256("CALLS_SCRIPT");
+    bytes32 internal constant CALLS_SCRIPT_EXECUTOR_TYPE = 0x2dc858a00f3e417be1394b87c07158e989ec681ce8cc68a9093680ac1a870302;
 
     bytes32 public constant CHANGE_DURATION_ROLE = keccak256("CHANGE_DURATION_ROLE");
     bytes32 public constant CHANGE_AMOUNT_ROLE = keccak256("CHANGE_AMOUNT_ROLE");
@@ -22,6 +26,8 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     string private constant ERROR_TOO_MANY_WITHDRAW_LOCKS = "TIME_LOCK_TOO_MANY_WITHDRAW_LOCKS";
     string private constant ERROR_CAN_NOT_FORWARD = "TIME_LOCK_CAN_NOT_FORWARD";
     string private constant ERROR_TRANSFER_REVERTED = "TIME_LOCK_TRANSFER_REVERTED";
+    string private constant ERROR_USE_CALLS_SCRIPT_EXECUTOR = "TIME_LOCK_USE_CALLS_SCRIPT_EXECUTOR";
+    string private constant ERROR_SCRIPT_INCORRECT_LENGTH = "TIME_LOCK_SCRIPT_INCORRECT_LENGTH";
 
     struct WithdrawLock {
         uint256 unlockTime;
@@ -39,6 +45,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     // struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in
     // future we must use a mapping instead, requiring overhead of storing index.
     mapping(address => WithdrawLock[]) public addressesWithdrawLocks;
+    address[] scriptRunnerBlacklist;
 
     event ChangeLockDuration(uint256 newLockDuration);
     event ChangeLockAmount(uint256 newLockAmount);
@@ -60,6 +67,9 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         lockDuration = _lockDuration;
         lockAmount = _lockAmount;
         spamPenaltyFactor = _spamPenaltyFactor;
+
+        scriptRunnerBlacklist.push(address(this));
+        scriptRunnerBlacklist.push(address(token));
 
         initialized();
     }
@@ -150,6 +160,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     */
     function forward(bytes _evmCallScript) public {
         require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
+        _ensureOnlyOneScript(_evmCallScript);
 
         WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
         (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty(msg.sender);
@@ -162,7 +173,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
         emit NewLock(msg.sender, unlockTime, totalAmount);
-        runScript(_evmCallScript, new bytes(0), new address[](0));
+        runScript(_evmCallScript, new bytes(0), scriptRunnerBlacklist);
     }
 
     function getWithdrawLocksCount(address _lockAddress) public view returns (uint256) {
@@ -215,6 +226,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         uint256 newAddressWithdrawLocksLength = addressWithdrawLocksLength - withdrawLockCount;
         for (uint256 shiftIndex = 0; shiftIndex < newAddressWithdrawLocksLength; shiftIndex++) {
             addressWithdrawLocks[shiftIndex] = addressWithdrawLocks[shiftIndex + withdrawLockCount];
+            delete addressWithdrawLocks[shiftIndex + withdrawLockCount];
         }
 
         addressWithdrawLocks.length = newAddressWithdrawLocksLength;
@@ -222,5 +234,19 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         token.transfer(msg.sender, amountOwed);
 
         emit Withdrawal(msg.sender, withdrawLockCount);
+    }
+
+    function _ensureOnlyOneScript(bytes _evmScript) internal {
+        uint256 specIdLength = 0x4;
+        uint256 addressLength = 0x14;
+        uint256 dataSizeLength = 0x4;
+        uint256 dataSizeLocation = 0x18;
+
+        IEVMScriptExecutor scriptExecutor = getEVMScriptExecutor(_evmScript);
+        require(scriptExecutor.executorType() == CALLS_SCRIPT_EXECUTOR_TYPE, ERROR_USE_CALLS_SCRIPT_EXECUTOR);
+
+        uint256 calldataLength = uint256(_evmScript.uint32At(dataSizeLocation));
+        uint256 scriptExpectedLength = specIdLength + addressLength + dataSizeLength + calldataLength;
+        require(scriptExpectedLength == _evmScript.length, ERROR_SCRIPT_INCORRECT_LENGTH);
     }
 }

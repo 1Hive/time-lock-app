@@ -10,7 +10,7 @@
 
 The Time Lock app is still in development, a first implementation was published to `time-lock.open.aragonpm.eth`. If you are interested in contributing please see our open [issues](https://github.com/1hive/time-lock-app/issues).
 
-#### 🚨 Security review status: Contracts frozen as of commit [57d4d5eaef9f4ade3218527e8942bf17d588bcc3](https://github.com/1Hive/time-lock-app/tree/57d4d5eaef9f4ade3218527e8942bf17d588bcc3/contracts)
+#### 🚨 Security review status: Contracts updated as of commit [57d4d5eaef9f4ade3218527e8942bf17d588bcc3](https://github.com/1Hive/time-lock-app/tree/57d4d5eaef9f4ade3218527e8942bf17d588bcc3/contracts)
 
 The code in this repo has not been audited.
 
