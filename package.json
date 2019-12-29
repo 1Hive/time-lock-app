@@ -1,6 +1,6 @@
 {
   "name": "@1hive/apps-time-lock",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "index.js",
   "scripts": {
     "start": "npm run start:template",
