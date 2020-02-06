@@ -62,7 +62,7 @@
     "ganache-cli": "^6.0.0",
     "prettier": "^1.17.1",
     "solidity-coverage": "^0.6.2",
-    "truffle": "^4.1.14"
+    "truffle": "4.1.14"
   },
   "dependencies": {
     "@aragon/os": "^4.0.1",
