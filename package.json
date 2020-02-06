@@ -65,7 +65,6 @@
     "truffle": "4.1.14"
   },
   "dependencies": {
-    "@aragon/os": "^4.0.1",
-    "@aragon/truffle-config-v4": "^1.0.1"
+    "@aragon/os": "^4.0.1"
   }
 }
