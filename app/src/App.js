@@ -1,19 +1,17 @@
 import React from 'react'
 import { Header, Main, SidePanel, SyncIndicator, Tag } from '@aragon/ui'
-import { useAragonApi } from '@aragon/api-react'
 
 import Locks from './screens/Locks'
 import MainButton from './components/MainButton'
 import Title from './components/Title'
 import WithdrawLocks from './components/Panels/WithdrawLocks'
-import { useAppLogic } from './hooks/app-hooks'
+import { useAppLogic, useGuiStyle } from './hooks/app-hooks'
 
 import Icon from './assets/withdraw.svg'
 
 function App() {
   const { locks, panelState, isSyncing, tokenSymbol, actions } = useAppLogic()
-  const { guiStyle } = useAragonApi()
-  const { appearance } = guiStyle
+  const { appearance } = useGuiStyle()
 
   return (
     <Main theme={appearance}>
