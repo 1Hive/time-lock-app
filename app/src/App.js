@@ -1,7 +1,6 @@
 import React from 'react'
 import { Main, SidePanel, SyncIndicator, Header, Badge } from '@aragon/ui'
-
-import { useAppLogic } from './hooks/app-hooks'
+import { useAppLogic, useGuiStyle } from './hooks/app-hooks'
 import Locks from './screens/Locks'
 import MainButton from './components/MainButton'
 import Title from './components/Title'
@@ -10,10 +9,11 @@ import Icon from './assets/withdraw.svg'
 
 function App() {
   const { locks, panelState, isSyncing, tokenSymbol, actions } = useAppLogic()
+  const { appearance } = useGuiStyle()
 
   return (
     <>
-      <Main>
+      <Main theme={appearance} assetsUrl="./aragon-ui">
         <SyncIndicator visible={isSyncing} />
         <Header
           primary={

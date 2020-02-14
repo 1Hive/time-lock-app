@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react'
-import { useAppState, useApi } from '@aragon/api-react'
+import { useAppState, useApi, useGuiStyle } from '@aragon/api-react'
 
 import { isUnlocked } from '../lib/lock-utils'
 import { useNow, useSidePanel } from './utils-hooks'
@@ -51,3 +51,5 @@ export function useAppLogic() {
     actions,
   }
 }
+
+export { useGuiStyle }
