@@ -16,10 +16,10 @@ const InfoBoxes = React.memo(props => {
           margin: ${1 * GU}px 0;
         `}
       >
-        "You can withdraw your tokens once they unlock
+        You can withdraw your tokens once they unlock
       </Info>
     </>
   )
 })
 
-export default <InfoBoxes />
+export default InfoBoxes

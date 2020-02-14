@@ -43,7 +43,7 @@ const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
         `}
       >
         This action will withdraw the {count.value === 1 ? '' : count.value} oldest lock
-        {count.value === 1 && 's'}
+        {count.value > 1 && 's'}
       </Info>
       <Row>
         <Split
