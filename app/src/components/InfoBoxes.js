@@ -1,7 +1,6 @@
 import React from 'react'
 
 import { Box, GU, Info } from '@aragon/ui'
-import { useNetwork } from '@aragon/api-react'
 
 import LockSettings from './LockSettings'
 
@@ -23,7 +22,4 @@ const InfoBoxes = React.memo(props => {
   )
 })
 
-export default props => {
-  const network = useNetwork()
-  return <InfoBoxes {...props} network={network} />
-}
+export default <InfoBoxes />
