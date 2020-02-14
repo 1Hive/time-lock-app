@@ -1,9 +1,8 @@
 import React, { useReducer, useEffect, useCallback, useRef } from 'react'
 import styled from 'styled-components'
 
-import { Button, TextInput, Text, Field, useTheme } from '@aragon/ui'
+import { Button, Field, GU, Info, Text, TextInput, useTheme } from '@aragon/ui'
 import { useAppState } from '@aragon/api-react'
-import { InfoMessage } from '../Message'
 
 import { reduceTotal, lockReducer } from '../../lib/lock-utils'
 import { formatTokenAmount } from '../../lib/math-utils'
@@ -37,12 +36,15 @@ const WithdrawLocks = React.memo(({ locks, withdraw, panelOpened }) => {
 
   return (
     <form onSubmit={handleFormSubmit}>
-      <InfoMessage
+      <Info
         title={'Lock action'}
-        text={`This action will withdraw the ${count.value === 1 ? '' : count.value} oldest lock${
-          count.value === 1 ? '' : 's'
-        }`}
-      />
+        css={`
+          margin: ${1 * GU}px 0;
+        `}
+      >
+        This action will withdraw the {count.value === 1 ? '' : count.value} oldest lock
+        {count.value === 1 && 's'}
+      </Info>
       <Row>
         <Split
           css={`
