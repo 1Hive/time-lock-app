@@ -1,7 +1,8 @@
 import React from 'react'
 import styled from 'styled-components'
+import { Text, TokenBadge, useTheme } from '@aragon/ui'
+import { useNetwork } from '@aragon/api-react'
 
-import { Text, TokenBadge } from '@aragon/ui'
 import { formatTokenAmount, formatTime, round } from '../lib/math-utils'
 
 function LockSettings({
@@ -12,9 +13,10 @@ function LockSettings({
   tokenName,
   tokenSymbol,
   tokenDecimals,
-  network,
-  theme,
 }) {
+  const theme = useTheme()
+  const network = useNetwork()
+
   return (
     <ul>
       {[
