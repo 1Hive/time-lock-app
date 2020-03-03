@@ -8,13 +8,13 @@ This guide will walk you through everything you need to add Time Lock app to an 
 
 Time Lock app has been published to the following locations:
 
-- Rinkeby: `time-lock.open.aragonpm.eth`
-- Mainnet: -
+- Mainnet: `time-lock.aragonpm.eth`
+- Rinkeby: `time-lock.aragonpm.eth`
 
 To deploy to an organization you can use the [Aragon CLI](https://hack.aragon.org/docs/cli-intro.html).
 
 ```sh
-aragon dao install <dao-address> time-lock.open.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount> <spam-penalty-factor>
+aragon dao install <dao-address> time-lock.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount> <spam-penalty-factor>
 ```
 
 ---
@@ -42,14 +42,14 @@ anyEntity=0xffffffffffffffffffffffffffffffffffffffff
 
 ### 2. Install Time Lock app to the DAO
 
-Time Lock app has been published to the APM on Rinkeby at `time-lock.open.aragonpm.eth`
+Time Lock app has been published to the APM on Mainnet and Rinkeby at `time-lock.aragonpm.eth`
 
 ```sh
-aragon dao install $dao time-lock.open.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount> <spam-penalty-factor> --environment aragon:rinkeby
+aragon dao install $dao time-lock.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount> <spam-penalty-factor> --environment aragon:rinkeby
 ```
 
 If the installation was executed successfully, you should see in you terminal:
-`✔ Installed time-lock.open.aragonpm.eth at: <time-lock-address>`
+`✔ Installed time-lock.aragonpm.eth at: <time-lock-address>`
 
 The default setup of the democracy DAO is for a vote of the token holders to take place before actions are executed. Head over to the voting app and you will see a new vote.
 

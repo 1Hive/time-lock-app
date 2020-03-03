@@ -77,7 +77,7 @@ The idea behind this is to prevent spamming of proposals.
 ```
 
 // Using an array of WithdrawLocks instead of a mapping here means we cannot add fields to the WithdrawLock struct in an upgrade of this contract. If we want to be able to add to the WithdrawLock structure in future we must use a mapping instead.
-mapping(address => WithdrawLockLib.WithdrawLock[]) public addressesWithdrawLocks;
+mapping(address => WithdrawLock[]) public addressesWithdrawLocks;
 
 ```
 
@@ -108,6 +108,9 @@ function initialize(address _token, uint256 _lockDuration, uint256 _lockAmount, 
     lockDuration = _lockDuration;
     lockAmount = _lockAmount;
     spamPenaltyFactor = _spamPenaltyFactor;
+
+    scriptRunnerBlacklist.push(address(this));
+    scriptRunnerBlacklist.push(address(token));
 
     initialized();
 }
@@ -223,7 +226,7 @@ function canForward(address _sender, bytes) public view returns (bool) {
 
 ```
 /**
-* @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(self): uint + self.lockAmount(): uint)` tokens and executes desired action
+* @notice Locks `@tokenAmount(self.token(): address, self.getSpamPenalty(msg.sender): uint + self.lockAmount(): uint)` tokens for `@transformTime(self.getSpamPenalty(msg.sender): (uint, <uint>) + self.lockDuration(): uint)` and executes desired action
 * @dev IForwarder interface conformance.
 *      Note that the Time Lock app has to be the first forwarder in the transaction path, it must be called by an
 *      EOA not another forwarder, in order for the spam penalty mechanism to work
@@ -231,6 +234,7 @@ function canForward(address _sender, bytes) public view returns (bool) {
 */
 function forward(bytes _evmCallScript) public {
     require(canForward(msg.sender, _evmCallScript), ERROR_CAN_NOT_FORWARD);
+    _ensureOnlyOneScript(_evmCallScript);
 
     WithdrawLock[] storage addressWithdrawLocks = addressesWithdrawLocks[msg.sender];
     (uint256 spamPenaltyAmount, uint256 spamPenaltyDuration) = getSpamPenalty(msg.sender);
@@ -243,7 +247,7 @@ function forward(bytes _evmCallScript) public {
     require(token.safeTransferFrom(msg.sender, address(this), totalAmount), ERROR_TRANSFER_REVERTED);
 
     emit NewLock(msg.sender, unlockTime, totalAmount);
-    runScript(_evmCallScript, new bytes(0), new address[](0));
+    runScript(_evmCallScript, new bytes(0), scriptRunnerBlacklist);
 }
 ```
 
@@ -322,5 +326,26 @@ function _withdrawTokens(uint256 _numberWithdrawLocks) internal {
     token.transfer(msg.sender, amountOwed);
 
     emit Withdrawal(msg.sender, withdrawLockCount);
+}
+```
+
+### Ensuring that only onw script is forwarded
+
+`_ensureOnlyOneScript` is an internal function to ensure that only one script is forwarded in an intent.
+This is to prevent for example in the context of Dandelion Orgs from members creating multiple scripts with several proposals.
+
+```
+function _ensureOnlyOneScript(bytes _evmScript) internal {
+    uint256 specIdLength = 0x4;
+    uint256 addressLength = 0x14;
+    uint256 dataSizeLength = 0x4;
+    uint256 dataSizeLocation = 0x18;
+
+    IEVMScriptExecutor scriptExecutor = getEVMScriptExecutor(_evmScript);
+    require(scriptExecutor.executorType() == CALLS_SCRIPT_EXECUTOR_TYPE, ERROR_USE_CALLS_SCRIPT_EXECUTOR);
+
+    uint256 calldataLength = uint256(_evmScript.uint32At(dataSizeLocation));
+    uint256 scriptExpectedLength = specIdLength + addressLength + dataSizeLength + calldataLength;
+    require(scriptExpectedLength == _evmScript.length, ERROR_SCRIPT_INCORRECT_LENGTH);
 }
 ```

@@ -6,13 +6,9 @@
 
 1Hive's Time Lock app allows an Aragon organization to require users to lock tokens by sending them to the Time Lock app for a configurable period of time in order to forward an intent. For example the organization may require users to lock 100 tokens for 1 month before creating a new vote. The user would be able to come back in a month and claim their locked tokens.
 
-#### 🐲 Project stage: development
+#### 🐲 Project stage: Mainnet
 
-The Time Lock app is still in development, a first implementation was published to `time-lock.open.aragonpm.eth`. If you are interested in contributing please see our open [issues](https://github.com/1hive/time-lock-app/issues).
-
-#### 🚨 Security review status: Contracts updated as of commit [57d4d5eaef9f4ade3218527e8942bf17d588bcc3](https://github.com/1Hive/time-lock-app/tree/57d4d5eaef9f4ade3218527e8942bf17d588bcc3/contracts)
-
-The code in this repo has not been audited.
+#### 🚨 Security review status: [Contracts audited](https://diligence.consensys.net/audits/2019/12/dandelion-organizations/)
 
 ## How does it work?
 
@@ -96,12 +92,12 @@ You will have to input how many locks you'll re-claim and they'll be withdrawn o
 
 ## Aragon DAO Installation
 
-TODO: Deploy Time Lock to rinkeby
+The Time Lock app has been published to APM on Mainnet and Rinkeby at `time-lock.aragonpm.eth`
 
 To deploy to an organization you can use the [aragonCLI](https://hack.aragon.org/docs/cli-intro.html).
 
 ```sh
-aragon dao install <dao-address> time-lock.open.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount>
+aragon dao install <dao-address> time-lock.aragonpm.eth --app-init-args <token-address> <lock-duration> <lock-amount>
 ```
 
 You have to set up permissions depending on your requirements for users to lock tokens before forwarding an intent. So for example if you want to require users to lock tokens before creating votes you should grant the Time Lock app the role to create votes on the Voting app.
