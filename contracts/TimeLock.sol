@@ -75,7 +75,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Change lock duration to `_lockDuration`
+    * @notice Change lock duration to `@transformTime(_lockDuration)`
     * @param _lockDuration The new lock duration
     */
     function changeLockDuration(uint256 _lockDuration) external auth(CHANGE_DURATION_ROLE) {
@@ -84,7 +84,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Change lock amount to `_lockAmount`
+    * @notice Change lock amount to `@tokenAmount(self.token(): address, _lockAmount, true)`
     * @param _lockAmount The new lock amount
     */
     function changeLockAmount(uint256 _lockAmount) external auth(CHANGE_AMOUNT_ROLE) {
@@ -93,7 +93,7 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
     }
 
     /**
-    * @notice Change spam penalty factor to `_spamPenaltyFactor`
+    * @notice Change spam penalty factor to `@formatPct(_spamPenaltyFactor)`
     * @param _spamPenaltyFactor The new spam penalty factor
     */
     function changeSpamPenaltyFactor(uint256 _spamPenaltyFactor) external auth(CHANGE_SPAM_PENALTY_ROLE) {
