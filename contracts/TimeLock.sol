@@ -249,4 +249,12 @@ contract TimeLock is AragonApp, IForwarder, IForwarderFee {
         uint256 scriptExpectedLength = specIdLength + addressLength + dataSizeLength + calldataLength;
         require(scriptExpectedLength == _evmScript.length, ERROR_SCRIPT_INCORRECT_LENGTH);
     }
+
+    /**
+    * @dev Disable recovery escape hatch, as it could be used
+    *      maliciously to transfer funds away from TimeLock
+    */
+    function allowRecoverability(address token) public view returns (bool) {
+        return false;
+    }
 }

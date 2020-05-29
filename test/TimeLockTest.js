@@ -482,6 +482,14 @@ contract('TimeLock', ([appManager, accountBal1000, accountBal500, accountNoBalan
         })
       })
     })
+
+    describe('transferToVault(address _token)', () => {
+      it('reverts', async () => {
+        await assertRevert(
+          timeLockForwarder.transferToVault(mockErc20.address),
+          'RECOVER_DISALLOWED')
+      })
+    })
   })
 
   describe('integration tests with token balance oracle', () => {
